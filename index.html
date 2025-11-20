@@ -2,22 +2,112 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Harita Uygulaması</title>
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body { height: 100%; overflow: hidden; background: #222; }
-        #map { height: 100%; width: 100%; }
+        html, body { height: 100%; overflow: hidden; background: #222; font-family: sans-serif; }
+        #map { height: 100%; width: 100%; display: none; /* Giriş yapılana kadar gizli */ }
 
-        /* --- GÜNCELLENEN KISIM: Arama Kutusu --- */
+        /* --- GİRİŞ EKRANI --- */
+        #loginScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #111;
+            z-index: 5000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-container {
+            background: white;
+            padding: 40px 30px;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .login-title {
+            font-size: 24px;
+            margin-bottom: 30px;
+            color: #2563eb;
+            font-weight: bold;
+        }
+
+        .login-btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .login-btn:active { transform: scale(0.98); }
+        
+        .btn-guest { background: #e5e7eb; color: #374151; }
+        .btn-user { background: #2563eb; color: white; }
+        .btn-admin { background: #1e293b; color: white; }
+
+        /* --- GİRİŞ FORM MODALI (Kullanıcı/Admin için) --- */
+        #authModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 6000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .auth-box {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 350px;
+        }
+
+        .auth-input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        .error-msg {
+            color: #ef4444;
+            font-size: 14px;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        /* --- HARİTA ARAYÜZÜ --- */
         .search-box {
             position: absolute;
             top: 20px;
-            left: 50%; /* Ekranın ortasına gelmesi için %50 */
-            transform: translateX(-50%); /* Tam ortalamak için kendi genişliğinin yarısı kadar geri çek */
+            left: 50%;
+            transform: translateX(-50%);
             width: 200px;
             padding: 10px 14px;
             border-radius: 18px;
@@ -26,10 +116,10 @@
             font-size: 16px;
             outline: none;
             background: white;
-            text-align: center; /* Yazılan numaranın da ortada durması için (isteğe bağlı) */
+            text-align: center;
+            display: none; /* JS ile açılacak */
         }
 
-        /* Marker Ekleme Butonu */
         .add-marker-btn {
             position: absolute;
             top: 20px;
@@ -45,28 +135,21 @@
             cursor: pointer;
             z-index: 1000;
             box-shadow: 0px 4px 12px rgba(0,0,0,0.3);
-            display: flex;
             align-items: center;
             justify-content: center;
             transition: all 0.3s ease;
+            display: none; /* Rol yetkisine göre açılacak */
         }
 
-        .add-marker-btn:hover {
-            background: #1d4ed8;
-            transform: scale(1.1);
-        }
-
-        .add-marker-btn.active {
-            background: #ef4444;
-            animation: pulse 1s infinite;
-        }
+        .add-marker-btn:hover { background: #1d4ed8; transform: scale(1.1); }
+        .add-marker-btn.active { background: #ef4444; animation: pulse 1s infinite; }
 
         @keyframes pulse {
             0%, 100% { box-shadow: 0px 4px 12px rgba(239, 68, 68, 0.5); }
             50% { box-shadow: 0px 4px 20px rgba(239, 68, 68, 0.8); }
         }
 
-        /* Modal */
+        /* Modal Genel */
         .modal {
             display: none;
             position: fixed;
@@ -79,11 +162,7 @@
             align-items: center;
             justify-content: center;
         }
-
-        .modal.show {
-            display: flex;
-        }
-
+        .modal.show { display: flex; }
         .modal-content {
             background: white;
             padding: 30px;
@@ -92,147 +171,75 @@
             max-width: 350px;
             box-shadow: 0px 8px 24px rgba(0,0,0,0.3);
         }
-
-        .modal-content h2 {
-            margin-bottom: 20px;
-            color: #2563eb;
-            font-size: 22px;
-        }
-
+        .modal-content h2 { margin-bottom: 20px; color: #2563eb; font-size: 22px; }
         .modal-content input {
-            width: 100%;
-            padding: 12px;
-            font-size: 16px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            outline: none;
+            width: 100%; padding: 12px; font-size: 16px;
+            border: 2px solid #ddd; border-radius: 8px; margin-bottom: 20px; outline: none;
         }
-
-        .modal-content input:focus {
-            border-color: #2563eb;
-        }
-
-        .modal-buttons {
-            display: flex;
-            gap: 10px;
-        }
-
+        .modal-content input:focus { border-color: #2563eb; }
+        .modal-buttons { display: flex; gap: 10px; }
         .modal-buttons button {
-            flex: 1;
-            padding: 12px;
-            font-size: 16px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: all 0.3s ease;
+            flex: 1; padding: 12px; font-size: 16px; border: none;
+            border-radius: 8px; cursor: pointer; font-weight: bold;
         }
+        .btn-save { background: #2563eb; color: white; }
+        .btn-cancel { background: #e5e7eb; color: #374151; }
+        .btn-delete { background: #ef4444; color: white; }
 
-        .btn-save {
-            background: #2563eb;
-            color: white;
-        }
-
-        .btn-save:hover {
-            background: #1d4ed8;
-        }
-
-        .btn-cancel {
-            background: #e5e7eb;
-            color: #374151;
-        }
-
-        .btn-cancel:hover {
-            background: #d1d5db;
-        }
-
-        .btn-delete {
-            background: #ef4444;
-            color: white;
-        }
-
-        .btn-delete:hover {
-            background: #dc2626;
-        }
-
-        /* Google Maps Stili Marker */
-        .pin-wrapper {
-            position: relative;
-            width: 50px;
-            height: 60px;
-            cursor: pointer;
-        }
-
+        /* Marker Stili */
+        .pin-wrapper { position: relative; width: 50px; height: 60px; cursor: pointer; }
         .pin-marker {
-            position: absolute;
-            width: 36px;
-            height: 36px;
-            background: #2563eb;
-            border-radius: 50% 50% 50% 0;
-            transform: rotate(-45deg);
-            left: 7px;
-            top: 0;
-            border: 3px solid white;
-            box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
+            position: absolute; width: 36px; height: 36px; background: #2563eb;
+            border-radius: 50% 50% 50% 0; transform: rotate(-45deg); left: 7px; top: 0;
+            border: 3px solid white; box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
         }
-
         .pin-marker::after {
-            content: '';
-            position: absolute;
-            width: 16px;
-            height: 16px;
-            background: white;
-            border-radius: 50%;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+            content: ''; position: absolute; width: 16px; height: 16px;
+            background: white; border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%);
         }
-
         .pin-number {
-            position: absolute;
-            top: -25px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: white;
-            font-weight: bold;
-            font-size: 14px;
-            z-index: 10;
-            background: #2563eb;
-            padding: 4px 10px;
-            border-radius: 12px;
-            white-space: nowrap;
-            box-shadow: 0px 2px 6px rgba(0,0,0,0.3);
+            position: absolute; top: -25px; left: 50%; transform: translateX(-50%);
+            color: white; font-weight: bold; font-size: 14px; z-index: 10;
+            background: #2563eb; padding: 4px 10px; border-radius: 12px;
+            white-space: nowrap; box-shadow: 0px 2px 6px rgba(0,0,0,0.3);
         }
+        .pin-marker.active { background: #ef4444 !important; animation: bounce 0.6s infinite ease-in-out; }
+        .pin-marker.active + .pin-number { background: #ef4444 !important; }
 
-        /* Aramada eşleşen ikon görünümü */
-        .pin-marker.active {
-            background: #ef4444 !important;
-            animation: bounce 0.6s infinite ease-in-out;
-        }
-
-        .pin-marker.active + .pin-number {
-            background: #ef4444 !important;
-        }
-
-        /* Bounce animasyonu */
         @keyframes bounce {
             0% { transform: rotate(-45deg) translateY(0); }
             50% { transform: rotate(-45deg) translateY(-10px); }
             100% { transform: rotate(-45deg) translateY(0); }
         }
-
-        /* Crosshair işaretçisi */
-        .leaflet-container.crosshair-cursor-enabled {
-            cursor: crosshair;
-        }
+        .leaflet-container.crosshair-cursor-enabled { cursor: crosshair; }
     </style>
 </head>
 
 <body>
 
-<input type="text" id="searchInput" class="search-box" placeholder="Numara Ara..." inputmode="numeric" pattern="[0-9]*">
+<div id="loginScreen">
+    <div class="login-container">
+        <div class="login-title">Depo Yönetim Sistemi</div>
+        <button class="login-btn btn-guest" onclick="selectRole('guest')">Misafir Olarak Devam Et</button>
+        <button class="login-btn btn-user" onclick="openAuthModal('user')">Kullanıcı Girişi Yap</button>
+        <button class="login-btn btn-admin" onclick="openAuthModal('admin')">Yönetici Girişi Yap</button>
+    </div>
+</div>
 
+<div id="authModal" style="display:none;">
+    <div class="auth-box">
+        <h2 id="authTitle">Giriş Yap</h2>
+        <input type="text" id="authUsername" class="auth-input" placeholder="Kullanıcı Adı" autocapitalize="none">
+        <input type="password" id="authPassword" class="auth-input" placeholder="Şifre">
+        <div id="authError" class="error-msg">Hatalı kullanıcı adı veya şifre!</div>
+        <div class="modal-buttons">
+            <button class="btn-cancel" onclick="closeAuthModal()">İptal</button>
+            <button class="btn-save" onclick="attemptLogin()">Giriş</button>
+        </div>
+    </div>
+</div>
+
+<input type="text" id="searchInput" class="search-box" placeholder="Numara Ara..." inputmode="numeric" pattern="[0-9]*">
 <button id="addMarkerBtn" class="add-marker-btn">+</button>
 
 <div id="addModal" class="modal">
@@ -281,7 +288,78 @@
     const db = getDatabase(app);
     const pointsRef = ref(db, "points");
 
-    /* Harita */
+    /* GLOBAL DEĞİŞKENLER VE ROL YÖNETİMİ */
+    let userRole = null; // 'guest', 'user', 'admin'
+    let targetRole = null; // Login modalında hangi role giriş yapılıyor
+
+    // Bu fonksiyonları global scope'a (window) atıyoruz ki HTML onclick çalışsın
+    window.selectRole = function(role) {
+        userRole = role;
+        initAppLayout();
+    };
+
+    window.openAuthModal = function(role) {
+        targetRole = role;
+        document.getElementById('authModal').style.display = 'flex';
+        document.getElementById('authTitle').innerText = role === 'admin' ? 'Yönetici Girişi' : 'Kullanıcı Girişi';
+        document.getElementById('authError').style.display = 'none';
+        document.getElementById('authUsername').value = '';
+        document.getElementById('authPassword').value = '';
+        document.getElementById('authUsername').focus();
+    };
+
+    window.closeAuthModal = function() {
+        document.getElementById('authModal').style.display = 'none';
+    };
+
+    window.attemptLogin = function() {
+        const u = document.getElementById('authUsername').value.trim();
+        const p = document.getElementById('authPassword').value.trim();
+        const err = document.getElementById('authError');
+
+        if (targetRole === 'user') {
+            if (u === 'depo' && p === '1234') {
+                userRole = 'user';
+                initAppLayout();
+            } else {
+                err.style.display = 'block';
+            }
+        } else if (targetRole === 'admin') {
+            if (u === 'admin' && p === '1940') {
+                userRole = 'admin';
+                initAppLayout();
+            } else {
+                err.style.display = 'block';
+            }
+        }
+    };
+
+    // Uygulamayı role göre başlatan fonksiyon
+    function initAppLayout() {
+        // Login ekranlarını kapat
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('authModal').style.display = 'none';
+        
+        // Haritayı ve arama kutusunu aç
+        const mapDiv = document.getElementById('map');
+        mapDiv.style.display = 'block';
+        document.getElementById('searchInput').style.display = 'block';
+        
+        // Leaflet harita boyutunu güncelle (display:none'dan geldiği için şart)
+        map.invalidateSize();
+
+        // Role göre butonları ayarla
+        const addBtn = document.getElementById('addMarkerBtn');
+        
+        if (userRole === 'guest') {
+            addBtn.style.display = 'none'; // Misafir ekleyemez
+        } else {
+            addBtn.style.display = 'flex'; // User ve Admin ekleyebilir
+        }
+    }
+
+
+    /* Harita Başlatma */
     const map = L.map('map', {
         crs: L.CRS.Simple,
         minZoom: -3,
@@ -322,11 +400,17 @@
         marker.myTitle = d.title;
         marker.firebaseKey = key;
         
-        // Marker'a tıklama eventi
+        // MARKER TIKLAMA - ROL KONTROLÜ BURADA
         marker.on('click', () => {
+            // Eğer ekleme modu açık değilse VE kullanıcı ADMIN ise silme açılır
             if (!addingMarkerMode) {
-                markerToDelete = { key: key, marker: marker };
-                deleteModal.classList.add("show");
+                if (userRole === 'admin') {
+                    markerToDelete = { key: key, marker: marker };
+                    document.getElementById("deleteModal").classList.add("show");
+                } else {
+                    // Misafir veya User silemez, sadece zoom yapar
+                    map.setView(marker.getLatLng(), map.getZoom());
+                }
             }
         });
         
@@ -339,27 +423,22 @@
     searchInput.addEventListener("input", () => {
         const value = searchInput.value.trim();
 
-        // Önceki aktif ikon varsa temizle
         if (lastActiveId) {
             const oldMarker = document.querySelector(`[data-pin="${lastActiveId}"]`);
             if (oldMarker) oldMarker.classList.remove("active");
         }
-
         lastActiveId = null;
 
         if (value === "") return;
 
         for (let key in markers) {
             const marker = markers[key];
-
             if (marker.myTitle.toString() === value) {
                 const pinMarker = document.querySelector(`[data-pin="${marker.myTitle}"]`);
                 if (pinMarker) {
                     pinMarker.classList.add("active");
                     lastActiveId = marker.myTitle;
                 }
-                
-                // Haritayı marker konumuna odakla
                 map.setView(marker.getLatLng(), map.getZoom());
                 break;
             }
@@ -387,7 +466,7 @@
         }
     });
 
-    /* Haritaya tıklama */
+    /* Haritaya tıklama (Ekleme için) */
     map.on("click", (e) => {
         if (addingMarkerMode) {
             tempLatLng = e.latlng;
@@ -400,20 +479,14 @@
     /* Kaydet butonu */
     saveBtn.addEventListener("click", () => {
         const number = markerNumberInput.value.trim();
-        
         if (number && tempLatLng) {
-            // Firebase'e kaydet
             push(pointsRef, {
                 lat: tempLatLng.lat,
                 lng: tempLatLng.lng,
                 title: number
             });
-
-            // Modal'ı kapat
             addModal.classList.remove("show");
             tempLatLng = null;
-            
-            // Marker ekleme modunu kapat
             addingMarkerMode = false;
             addMarkerBtn.classList.remove("active");
             addMarkerBtn.textContent = "+";
@@ -421,20 +494,15 @@
         }
     });
 
-    /* İptal butonu */
     cancelBtn.addEventListener("click", () => {
         addModal.classList.remove("show");
         tempLatLng = null;
     });
 
-    /* Enter tuşu ile kaydet */
     markerNumberInput.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") {
-            saveBtn.click();
-        }
+        if (e.key === "Enter") saveBtn.click();
     });
 
-    /* Modal dışına tıklama ile kapat */
     addModal.addEventListener("click", (e) => {
         if (e.target === addModal) {
             addModal.classList.remove("show");
@@ -442,22 +510,17 @@
         }
     });
 
-    /* Silme Modal */
+    /* Silme Modal İşlemleri */
     const deleteModal = document.getElementById("deleteModal");
     const confirmDeleteBtn = document.getElementById("confirmDeleteBtn");
     const deleteCancelBtn = document.getElementById("deleteCancelBtn");
 
     confirmDeleteBtn.addEventListener("click", () => {
         if (markerToDelete) {
-            // Firebase'den sil
             const markerRef = ref(db, `points/${markerToDelete.key}`);
             remove(markerRef);
-            
-            // Haritadan kaldır
             map.removeLayer(markerToDelete.marker);
             delete markers[markerToDelete.key];
-            
-            // Modal'ı kapat
             deleteModal.classList.remove("show");
             markerToDelete = null;
         }
@@ -476,6 +539,5 @@
     });
 
 </script>
-
 </body>
 </html>
