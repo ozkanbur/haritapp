@@ -12,11 +12,12 @@
         html, body { height: 100%; overflow: hidden; background: #222; }
         #map { height: 100%; width: 100%; }
 
-        /* Arama Kutusu */
+        /* --- GÜNCELLENEN KISIM: Arama Kutusu --- */
         .search-box {
             position: absolute;
             top: 20px;
-            left: 20px;
+            left: 50%; /* Ekranın ortasına gelmesi için %50 */
+            transform: translateX(-50%); /* Tam ortalamak için kendi genişliğinin yarısı kadar geri çek */
             width: 200px;
             padding: 10px 14px;
             border-radius: 18px;
@@ -25,6 +26,7 @@
             font-size: 16px;
             outline: none;
             background: white;
+            text-align: center; /* Yazılan numaranın da ortada durması için (isteğe bağlı) */
         }
 
         /* Marker Ekleme Butonu */
@@ -229,15 +231,14 @@
 
 <body>
 
-<input type="text" id="searchInput" class="search-box" placeholder="Numara Ara...">
+<input type="text" id="searchInput" class="search-box" placeholder="Numara Ara..." inputmode="numeric" pattern="[0-9]*">
 
 <button id="addMarkerBtn" class="add-marker-btn">+</button>
 
-<!-- Ekleme Modal -->
 <div id="addModal" class="modal">
     <div class="modal-content">
         <h2>İstif Numarası</h2>
-        <input type="text" id="markerNumber" placeholder="Numara girin..." autocomplete="off">
+        <input type="text" id="markerNumber" placeholder="Numara girin..." autocomplete="off" inputmode="numeric" pattern="[0-9]*">
         <div class="modal-buttons">
             <button class="btn-cancel" id="cancelBtn">İptal</button>
             <button class="btn-save" id="saveBtn">Kaydet</button>
@@ -245,7 +246,6 @@
     </div>
 </div>
 
-<!-- Silme Modal -->
 <div id="deleteModal" class="modal">
     <div class="modal-content">
         <h2>İstif Sil</h2>
