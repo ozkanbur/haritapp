@@ -21,7 +21,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); /* Arka planı biraz daha şık yaptık */
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
             z-index: 5000;
             display: flex;
             flex-direction: column;
@@ -69,7 +69,7 @@
         .brand-slogan {
             font-size: 13px;
             font-weight: 800;
-            background: linear-gradient(90deg, #2563eb, #dc2626); /* Mavi'den Kırmızıya geçiş */
+            background: linear-gradient(90deg, #2563eb, #dc2626);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             font-style: italic;
@@ -329,9 +329,9 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script type="module">
 
-    /* Firebase içe aktarma */
+    /* Firebase içe aktarma - 'update' eklendi */
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, push, onChildAdded, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getDatabase, ref, push, onChildAdded, remove, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyBALVTNtwpBZEB4t8fhb7_I3nZJZzrnJU4",
@@ -405,10 +405,19 @@
 
         const addBtn = document.getElementById('addMarkerBtn');
         
+        // Rol kontrolleri
         if (userRole === 'guest') {
             addBtn.style.display = 'none';
+            // Marker sürüklemeyi kapat
+            for (let key in markers) {
+                markers[key].dragging.disable();
+            }
         } else {
             addBtn.style.display = 'flex';
+            // Kullanıcı veya Admin ise markerları sürüklenebilir yap
+            for (let key in markers) {
+                markers[key].dragging.enable();
+            }
         }
     }
 
@@ -448,12 +457,38 @@
         const d = snap.val();
         const key = snap.key;
 
-        const marker = L.marker([d.lat, d.lng], { icon: createNumberIcon(d.title) }).addTo(map);
+        // Varsayılan olarak sürüklenebilir özelliği kapalı gelir, rol seçilince açılır
+        const marker = L.marker([d.lat, d.lng], { 
+            icon: createNumberIcon(d.title),
+            draggable: false 
+        }).addTo(map);
+
         marker.myTitle = d.title;
         marker.firebaseKey = key;
         
+        // Eğer kullanıcı zaten giriş yapmışsa ve yetkiliyse, yeni eklenen marker sürüklenebilir olsun
+        if(userRole === 'admin' || userRole === 'user') {
+            marker.dragging.enable();
+        }
+
+        // SÜRÜKLEME BİTTİĞİNDE (Drag End)
+        marker.on('dragend', (event) => {
+            const newPos = event.target.getLatLng();
+            const markerRef = ref(db, `points/${key}`);
+            
+            update(markerRef, {
+                lat: newPos.lat,
+                lng: newPos.lng
+            }).then(() => {
+                console.log("Konum güncellendi:", newPos);
+            }).catch((error) => {
+                console.error("Güncelleme hatası:", error);
+            });
+        });
+        
         marker.on('click', () => {
             if (!addingMarkerMode) {
+                // Sadece tıklama ise işlem yap, sürükleme ise yapma (Leaflet bunu genelde ayırır)
                 if (userRole === 'admin') {
                     markerToDelete = { key: key, marker: marker };
                     document.getElementById("deleteModal").classList.add("show");
