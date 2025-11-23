@@ -86,20 +86,11 @@
             width: 50px; height: 50px; border-radius: 50%;
             border: none; cursor: pointer; z-index: 1000;
             box-shadow: 0px 4px 12px rgba(0,0,0,0.3);
-            /* SVG ORTALAMA İÇİN KRİTİK AYARLAR */
             display: none; /* JS ile flex yapılacak */
-            align-items: center;
-            justify-content: center;
-            padding: 0;
-            
+            align-items: center; justify-content: center; padding: 0;
             color: white; transition: all 0.3s ease;
         }
-        .action-btn svg {
-            width: 24px; 
-            height: 24px;
-            fill: currentColor; /* Text color neyse ikon rengi o olsun */
-            pointer-events: none; /* Tıklamayı butona geçir */
-        }
+        .action-btn svg { width: 24px; height: 24px; fill: currentColor; pointer-events: none; }
 
         #addMarkerBtn { top: 20px; background: #2563eb; }
         #addMarkerBtn.active { background: #ef4444; }
@@ -112,15 +103,21 @@
             position: absolute; width: 36px; height: 36px; background: #2563eb; 
             border-radius: 50% 50% 50% 0; left: 7px; top: 0; 
             border: 3px solid white; transition: background 0.3s;
-            transform: rotate(-45deg); 
+            transform: rotate(-45deg); /* Varsayılan duruş */
         }
         .pin-marker::after { content: ''; position: absolute; width: 16px; height: 16px; background: white; border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); }
         .pin-number { position: absolute; top: -28px; left: 50%; transform: translateX(-50%); color: white; font-weight: bold; font-size: 14px; z-index: 10; background: #2563eb; padding: 4px 10px; border-radius: 12px; white-space: nowrap; transition: all 0.3s; }
         
-        /* ZIPLAMA ANİMASYONU (DÜZELTİLMİŞ) */
+        /* ZIPLAMA ANİMASYONU (DÜZELTİLDİ: DİKEY ZIPLAMA) */
         @keyframes bounceCorrect {
-            0%, 100% { transform: rotate(-45deg) scale(1.2) translate(0, 0); }
-            50% { transform: rotate(-45deg) scale(1.2) translate(-6px, -6px); }
+            0%, 100% {
+                /* Başlangıç: Olduğu yerde */
+                transform: translateY(0) rotate(-45deg) scale(1.2);
+            }
+            50% {
+                /* Tepe Noktası: Önce yukarı taşı, sonra döndür */
+                transform: translateY(-15px) rotate(-45deg) scale(1.2);
+            }
         }
 
         .pin-marker.active { 
@@ -424,9 +421,7 @@
     const lockBtn = document.getElementById('lockBtn');
     lockBtn.addEventListener('click', () => {
         isEditMode = !isEditMode;
-        // Text yerine SVG HTML'i basıyoruz
         lockBtn.innerHTML = isEditMode ? svgUnlock : svgLock;
-        
         lockBtn.classList.toggle('unlocked', isEditMode);
         document.getElementById('map').classList.toggle('map-edit-active', isEditMode);
         for (let key in markers) {
@@ -473,17 +468,13 @@
         addingMarkerMode = !addingMarkerMode;
         if (addingMarkerMode) {
             addMarkerBtn.classList.add("active"); 
-            // SVG Değişimi: Artı -> Çarpı
             addMarkerBtn.innerHTML = svgClose;
-            
             map.getContainer().classList.add("crosshair-cursor-enabled");
             document.getElementById("navPanel").style.display = "none";
             stopTracking();
         } else {
             addMarkerBtn.classList.remove("active"); 
-            // SVG Değişimi: Çarpı -> Artı
             addMarkerBtn.innerHTML = svgPlus;
-            
             map.getContainer().classList.remove("crosshair-cursor-enabled");
         }
     });
@@ -509,7 +500,7 @@
             addModal.classList.remove("show");
             tempLatLng = null; addingMarkerMode = false;
             addMarkerBtn.classList.remove("active"); 
-            addMarkerBtn.innerHTML = svgPlus; // İkonu düzelt
+            addMarkerBtn.innerHTML = svgPlus;
             map.getContainer().classList.remove("crosshair-cursor-enabled");
         }
     });
