@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Harita - Canlı Takip</title>
+    <title>Harita - Admin Paneli</title>
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
@@ -78,7 +78,7 @@
         .btn-delete { background: #ef4444; color: white; flex: 1; padding: 12px; border:none; border-radius:8px; font-weight:bold; cursor:pointer;}
         .error-msg { color: #ef4444; font-size: 14px; margin-bottom: 15px; display: none; text-align: center; font-weight: 600; }
 
-        /* --- BUTON DÜZENLEMELERİ (SVG ile Tam Ortalama) --- */
+        /* --- BUTONLAR --- */
         .search-box { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); width: 200px; padding: 12px; z-index: 1000; border-radius: 24px; border: 2px solid #2563eb; display: none; text-align: center; }
         
         .action-btn {
@@ -86,8 +86,7 @@
             width: 50px; height: 50px; border-radius: 50%;
             border: none; cursor: pointer; z-index: 1000;
             box-shadow: 0px 4px 12px rgba(0,0,0,0.3);
-            display: none; /* JS ile flex yapılacak */
-            align-items: center; justify-content: center; padding: 0;
+            display: none; align-items: center; justify-content: center; padding: 0;
             color: white; transition: all 0.3s ease;
         }
         .action-btn svg { width: 24px; height: 24px; fill: currentColor; pointer-events: none; }
@@ -108,7 +107,7 @@
         .pin-marker::after { content: ''; position: absolute; width: 16px; height: 16px; background: white; border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); }
         .pin-number { position: absolute; top: -28px; left: 50%; transform: translateX(-50%); color: white; font-weight: bold; font-size: 14px; z-index: 10; background: #2563eb; padding: 4px 10px; border-radius: 12px; white-space: nowrap; transition: all 0.3s; }
         
-        /* ZIPLAMA ANİMASYONU (DİKEY) */
+        /* ZIPLAMA (Vertical) */
         @keyframes bounceCorrect {
             0%, 100% { transform: translateY(0) rotate(-45deg) scale(1.2); }
             50% { transform: translateY(-15px) rotate(-45deg) scale(1.2); }
@@ -131,6 +130,17 @@
             70% { box-shadow: 0 0 0 15px rgba(66, 133, 244, 0); }
             100% { box-shadow: 0 0 0 0 rgba(66, 133, 244, 0); }
         }
+        
+        /* Popup Sil Butonu */
+        .leaflet-popup-content-wrapper { border-radius: 12px; }
+        .leaflet-popup-content { margin: 8px; text-align: center; }
+        .popup-delete-btn {
+            background: #ef4444; color: white; border: none; padding: 8px 16px;
+            border-radius: 8px; font-weight: bold; cursor: pointer; font-family: 'Montserrat', sans-serif;
+            display: flex; align-items: center; gap: 5px; font-size: 14px;
+        }
+        .popup-delete-btn:hover { background: #dc2626; }
+
         .leaflet-container.crosshair-cursor-enabled { cursor: crosshair; }
     </style>
 </head>
@@ -312,6 +322,14 @@
         });
     }
 
+    // --- GLOBAL SİLME TETİKLEYİCİSİ ---
+    // Popup içindeki HTML buton bu fonksiyonu çağıracak
+    window.triggerDelete = function(key) {
+        markerToDelete = { key: key, marker: markers[key] };
+        document.getElementById("deleteModal").classList.add("show");
+        map.closePopup(); // Popup'ı kapat
+    };
+
     // --- FIREBASE VERİ OKUMA ---
     onChildAdded(pointsRef, (snap) => {
         const d = snap.val();
@@ -327,21 +345,12 @@
             if(targetLatLng && targetLatLng.equals(marker.getLatLng())) { targetLatLng = newPos; updateRoute(); }
         });
 
-        // MARKER TIKLAMA OLAYI (DÜZELTİLEN KISIM)
+        // MARKER TIKLAMA OLAYI (GÜNCELLENDİ)
         marker.on('click', (e) => {
             L.DomEvent.stopPropagation(e);
+            
             if (!addingMarkerMode) {
-                
-                // 1. ÖNCELİK: SİLME YETKİSİ KONTROLÜ
-                // Eğer yönetici ise VE kilit açıksa (edit modu), silme işlemini başlat
-                if (userRole === 'admin' && isEditMode) {
-                    markerToDelete = { key: key, marker: marker };
-                    document.getElementById("deleteModal").classList.add("show");
-                    document.getElementById("navPanel").style.display = "none"; // Paneli gizle
-                    return; // Navigasyona geçmeden çık
-                }
-
-                // 2. NORMAL KULLANIM (Navigasyon)
+                // 1. HERKES İÇİN: Rota Panelini Aç
                 document.querySelectorAll('.pin-marker').forEach(el => el.classList.remove('active'));
                 document.querySelectorAll('.pin-number').forEach(el => el.classList.remove('active'));
                 const pinEl = marker.getElement().querySelector('.pin-marker');
@@ -349,11 +358,24 @@
                 if(pinEl) pinEl.classList.add('active');
                 if(numEl) numEl.classList.add('active');
 
-                // Hedef belirle ve Paneli Aç
+                // Navigasyonu Başlat
                 map.setView(marker.getLatLng(), map.getZoom());
                 targetLatLng = marker.getLatLng();
                 document.getElementById("navPanel").style.display = "flex";
                 document.getElementById("navDistance").innerText = "Hazır";
+
+                // 2. YÖNETİCİ + KİLİT AÇIK İSE: Silme Popup'ı Göster
+                if (userRole === 'admin' && isEditMode) {
+                    const btnHtml = `<button onclick="triggerDelete('${key}')" class="popup-delete-btn">
+                                        <svg style="width:16px;height:16px;fill:white;" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                                        Sil
+                                     </button>`;
+                    
+                    L.popup({ offset: [0, -40], closeButton: false }) // Marker'ın tepesinde aç
+                        .setLatLng(marker.getLatLng())
+                        .setContent(btnHtml)
+                        .openOn(map);
+                }
             }
         });
         markers[key] = marker;
@@ -407,6 +429,10 @@
         lockBtn.innerHTML = isEditMode ? svgUnlock : svgLock;
         lockBtn.classList.toggle('unlocked', isEditMode);
         document.getElementById('map').classList.toggle('map-edit-active', isEditMode);
+        
+        // Popup açıksa kapat (karışıklığı önlemek için)
+        map.closePopup();
+
         for (let key in markers) {
             if(isEditMode) markers[key].dragging.enable();
             else markers[key].dragging.disable();
@@ -420,6 +446,7 @@
         document.querySelectorAll('.pin-number').forEach(el => el.classList.remove('active'));
         document.getElementById("navPanel").style.display = "none";
         stopTracking();
+        map.closePopup();
 
         if (value === "") return;
 
@@ -452,6 +479,7 @@
             addMarkerBtn.innerHTML = svgClose;
             map.getContainer().classList.add("crosshair-cursor-enabled");
             document.getElementById("navPanel").style.display = "none";
+            map.closePopup();
             stopTracking();
         } else {
             addMarkerBtn.classList.remove("active"); 
@@ -471,6 +499,7 @@
             document.querySelectorAll('.pin-marker').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.pin-number').forEach(el => el.classList.remove('active'));
             stopTracking();
+            map.closePopup();
         }
     });
 
