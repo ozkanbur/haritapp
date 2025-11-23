@@ -78,30 +78,57 @@
         .btn-delete { background: #ef4444; color: white; flex: 1; padding: 12px; border:none; border-radius:8px; font-weight:bold; cursor:pointer;}
         .error-msg { color: #ef4444; font-size: 14px; margin-bottom: 15px; display: none; text-align: center; font-weight: 600; }
 
-        /* UI Elemanları */
+        /* --- BUTON DÜZENLEMELERİ (ORTALAMA FIX) --- */
         .search-box { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); width: 200px; padding: 12px; z-index: 1000; border-radius: 24px; border: 2px solid #2563eb; display: none; text-align: center; }
-        .action-btn { position: absolute; right: 20px; width: 50px; height: 50px; border-radius: 50%; border: none; cursor: pointer; z-index: 1000; color: white; font-size: 24px; display: none; }
-        #addMarkerBtn { top: 20px; background: #2563eb; }
-        #addMarkerBtn.active { background: #ef4444; }
-        #lockBtn { top: 85px; background: #64748b; }
+        
+        .action-btn {
+            position: absolute; right: 20px;
+            width: 50px; height: 50px; border-radius: 50%;
+            border: none; cursor: pointer; z-index: 1000;
+            box-shadow: 0px 4px 12px rgba(0,0,0,0.3);
+            /* BUTON ORTALAMA DÜZELTMESİ */
+            display: none; /* JS ile flex yapılacak */
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            line-height: 1;
+            font-size: 26px; /* İkon boyutu */
+            padding-bottom: 2px; /* Optik dengeleme */
+            
+            color: white; transition: all 0.3s ease;
+        }
+        #addMarkerBtn { top: 20px; background: #2563eb; font-weight: 400; font-size: 32px; } /* Artı işareti için ince ayar */
+        #addMarkerBtn.active { background: #ef4444; font-size: 32px; }
+        #lockBtn { top: 85px; background: #64748b; font-size: 22px; }
         #lockBtn.unlocked { background: #22c55e; }
 
         /* Marker Stili */
         .pin-wrapper { position: relative; width: 50px; height: 60px; cursor: pointer; }
-        .pin-marker { position: absolute; width: 36px; height: 36px; background: #2563eb; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); left: 7px; top: 0; border: 3px solid white; transition: all 0.3s; }
+        .pin-marker { 
+            position: absolute; width: 36px; height: 36px; background: #2563eb; 
+            border-radius: 50% 50% 50% 0; left: 7px; top: 0; 
+            border: 3px solid white; transition: background 0.3s;
+            /* Default Duruş */
+            transform: rotate(-45deg); 
+        }
         .pin-marker::after { content: ''; position: absolute; width: 16px; height: 16px; background: white; border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); }
         .pin-number { position: absolute; top: -28px; left: 50%; transform: translateX(-50%); color: white; font-weight: bold; font-size: 14px; z-index: 10; background: #2563eb; padding: 4px 10px; border-radius: 12px; white-space: nowrap; transition: all 0.3s; }
         
-        /* DÜZELTİLDİ: BOUNCE ANİMASYONU GERİ GELDİ */
-        @keyframes bounce {
-            0% { transform: rotate(-45deg) translateY(0); }
-            50% { transform: rotate(-45deg) translateY(-10px); }
-            100% { transform: rotate(-45deg) translateY(0); }
+        /* --- DÜZELTİLMİŞ ZIPLAMA ANİMASYONU --- */
+        @keyframes bounceCorrect {
+            0%, 100% {
+                transform: rotate(-45deg) scale(1.2) translate(0, 0);
+            }
+            50% {
+                /* -45 derece dönmüş bir karede 'yukarı' zıplamak için hem X hem Y ekseninde eksi yönde gitmek gerekir */
+                transform: rotate(-45deg) scale(1.2) translate(-6px, -6px);
+            }
         }
 
         .pin-marker.active { 
             background: #ef4444 !important; 
-            animation: bounce 0.6s infinite ease-in-out; /* Animasyon geri eklendi */
+            /* Önceki transformu ezmeden animasyonu uygula */
+            animation: bounceCorrect 0.8s infinite ease-in-out;
             z-index: 100;
         }
         .pin-marker.active + .pin-number { background: #ef4444 !important; top: -35px; z-index: 100; }
@@ -253,8 +280,13 @@
         
         const addBtn = document.getElementById('addMarkerBtn');
         const lockBtn = document.getElementById('lockBtn');
-        if (userRole === 'guest') { addBtn.style.display = 'none'; lockBtn.style.display = 'none'; }
-        else { addBtn.style.display = 'flex'; lockBtn.style.display = 'flex'; }
+        if (userRole === 'guest') { 
+            addBtn.style.display = 'none'; 
+            lockBtn.style.display = 'none'; 
+        } else { 
+            addBtn.style.display = 'flex'; // Flex ile açıyoruz ki ortalama bozulmasın
+            lockBtn.style.display = 'flex'; 
+        }
     }
 
     // --- HARİTA AYARLARI ---
