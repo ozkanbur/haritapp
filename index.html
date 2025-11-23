@@ -116,9 +116,10 @@
         .pin-marker.active { 
             background: #ef4444 !important; 
             animation: bounceCorrect 0.8s infinite ease-in-out;
-            z-index: 100;
+            /* z-index CSS'te 100 olsa da Leaflet override edebilir, bu yüzden JS ile destekliyoruz */
+            z-index: 9999 !important; 
         }
-        .pin-marker.active + .pin-number { background: #ef4444 !important; top: -35px; z-index: 100; }
+        .pin-marker.active + .pin-number { background: #ef4444 !important; top: -35px; z-index: 9999 !important; }
 
         /* MAVİ GPS NOKTASI */
         .user-location-dot {
@@ -323,11 +324,10 @@
     }
 
     // --- GLOBAL SİLME TETİKLEYİCİSİ ---
-    // Popup içindeki HTML buton bu fonksiyonu çağıracak
     window.triggerDelete = function(key) {
         markerToDelete = { key: key, marker: markers[key] };
         document.getElementById("deleteModal").classList.add("show");
-        map.closePopup(); // Popup'ı kapat
+        map.closePopup(); 
     };
 
     // --- FIREBASE VERİ OKUMA ---
@@ -345,12 +345,18 @@
             if(targetLatLng && targetLatLng.equals(marker.getLatLng())) { targetLatLng = newPos; updateRoute(); }
         });
 
-        // MARKER TIKLAMA OLAYI (GÜNCELLENDİ)
+        // MARKER TIKLAMA OLAYI
         marker.on('click', (e) => {
             L.DomEvent.stopPropagation(e);
             
             if (!addingMarkerMode) {
-                // 1. HERKES İÇİN: Rota Panelini Aç
+                // ÖNCE TÜM MARKERLARI NORMAL Z-INDEX YAP
+                for(let k in markers) markers[k].setZIndexOffset(0);
+
+                // SEÇİLEN MARKER'I EN ÖNE GETİR
+                marker.setZIndexOffset(1000);
+
+                // GÖRSEL AKTİVASYON
                 document.querySelectorAll('.pin-marker').forEach(el => el.classList.remove('active'));
                 document.querySelectorAll('.pin-number').forEach(el => el.classList.remove('active'));
                 const pinEl = marker.getElement().querySelector('.pin-marker');
@@ -358,20 +364,20 @@
                 if(pinEl) pinEl.classList.add('active');
                 if(numEl) numEl.classList.add('active');
 
-                // Navigasyonu Başlat
+                // NAVİGASYONU BAŞLAT (HERKES İÇİN)
                 map.setView(marker.getLatLng(), map.getZoom());
                 targetLatLng = marker.getLatLng();
                 document.getElementById("navPanel").style.display = "flex";
                 document.getElementById("navDistance").innerText = "Hazır";
 
-                // 2. YÖNETİCİ + KİLİT AÇIK İSE: Silme Popup'ı Göster
+                // YÖNETİCİ + EDİT MODU İSE: SİLME BUTONU POPUP AÇ
                 if (userRole === 'admin' && isEditMode) {
                     const btnHtml = `<button onclick="triggerDelete('${key}')" class="popup-delete-btn">
                                         <svg style="width:16px;height:16px;fill:white;" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
                                         Sil
                                      </button>`;
                     
-                    L.popup({ offset: [0, -40], closeButton: false }) // Marker'ın tepesinde aç
+                    L.popup({ offset: [0, -40], closeButton: false }) 
                         .setLatLng(marker.getLatLng())
                         .setContent(btnHtml)
                         .openOn(map);
@@ -430,7 +436,6 @@
         lockBtn.classList.toggle('unlocked', isEditMode);
         document.getElementById('map').classList.toggle('map-edit-active', isEditMode);
         
-        // Popup açıksa kapat (karışıklığı önlemek için)
         map.closePopup();
 
         for (let key in markers) {
@@ -448,11 +453,17 @@
         stopTracking();
         map.closePopup();
 
+        // ÖNCE HEPSİNİ SIFIRLA
+        for(let k in markers) markers[k].setZIndexOffset(0);
+
         if (value === "") return;
 
         for (let key in markers) {
             const marker = markers[key];
             if (marker.myTitle.toString() === value) {
+                // BULUNANI EN ÖNE AL
+                marker.setZIndexOffset(1000);
+
                 const pinEl = marker.getElement().querySelector('.pin-marker');
                 const numEl = marker.getElement().querySelector('.pin-number');
                 if(pinEl) pinEl.classList.add('active');
@@ -500,6 +511,8 @@
             document.querySelectorAll('.pin-number').forEach(el => el.classList.remove('active'));
             stopTracking();
             map.closePopup();
+            // Tıklama boşluğa ise z-indexleri sıfırla
+            for(let k in markers) markers[k].setZIndexOffset(0);
         }
     });
 
