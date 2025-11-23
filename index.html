@@ -97,15 +97,28 @@
         #lockBtn.unlocked { background: #22c55e; }
 
         /* Marker Stili */
-        .pin-wrapper { position: relative; width: 50px; height: 60px; cursor: pointer; }
+        /* ÖNEMLİ: z-index sorununu çözmek için wrapper'a da stil veriyoruz */
+        .pin-wrapper { 
+            position: relative; width: 50px; height: 60px; cursor: pointer; 
+        }
+        
         .pin-marker { 
             position: absolute; width: 36px; height: 36px; background: #2563eb; 
             border-radius: 50% 50% 50% 0; left: 7px; top: 0; 
             border: 3px solid white; transition: background 0.3s;
             transform: rotate(-45deg); 
+            z-index: 10; /* Varsayılan katman */
         }
         .pin-marker::after { content: ''; position: absolute; width: 16px; height: 16px; background: white; border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); }
-        .pin-number { position: absolute; top: -28px; left: 50%; transform: translateX(-50%); color: white; font-weight: bold; font-size: 14px; z-index: 10; background: #2563eb; padding: 4px 10px; border-radius: 12px; white-space: nowrap; transition: all 0.3s; }
+        
+        /* NUMARANIN HER ZAMAN PİNİN ÖNÜNDE OLMASI İÇİN */
+        .pin-number { 
+            position: absolute; top: -28px; left: 50%; transform: translateX(-50%); 
+            color: white; font-weight: bold; font-size: 14px; 
+            background: #2563eb; padding: 4px 10px; border-radius: 12px; 
+            white-space: nowrap; transition: all 0.3s; 
+            z-index: 20; /* Pin'den daha yüksek */
+        }
         
         /* ZIPLAMA (Vertical) */
         @keyframes bounceCorrect {
@@ -113,13 +126,12 @@
             50% { transform: translateY(-15px) rotate(-45deg) scale(1.2); }
         }
 
+        /* AKTİF OLUNCA ÇOK YÜKSEK Z-INDEX */
         .pin-marker.active { 
             background: #ef4444 !important; 
             animation: bounceCorrect 0.8s infinite ease-in-out;
-            /* z-index CSS'te 100 olsa da Leaflet override edebilir, bu yüzden JS ile destekliyoruz */
-            z-index: 9999 !important; 
         }
-        .pin-marker.active + .pin-number { background: #ef4444 !important; top: -35px; z-index: 9999 !important; }
+        .pin-marker.active + .pin-number { background: #ef4444 !important; top: -35px; }
 
         /* MAVİ GPS NOKTASI */
         .user-location-dot {
@@ -143,6 +155,11 @@
         .popup-delete-btn:hover { background: #dc2626; }
 
         .leaflet-container.crosshair-cursor-enabled { cursor: crosshair; }
+        
+        /* ÖNEMLİ: Seçilen marker'ın Leaflet katmanında en üstte durmasını garantiler */
+        .leaflet-marker-icon.active-zindex {
+            z-index: 1000000 !important;
+        }
     </style>
 </head>
 
@@ -350,13 +367,11 @@
             L.DomEvent.stopPropagation(e);
             
             if (!addingMarkerMode) {
-                // ÖNCE TÜM MARKERLARI NORMAL Z-INDEX YAP
+                // SIFIRLA VE YÜKSELT
                 for(let k in markers) markers[k].setZIndexOffset(0);
+                marker.setZIndexOffset(1000000); // Tıklananı en üste al
 
-                // SEÇİLEN MARKER'I EN ÖNE GETİR
-                marker.setZIndexOffset(1000);
-
-                // GÖRSEL AKTİVASYON
+                // 1. HERKES İÇİN: Rota Panelini Aç
                 document.querySelectorAll('.pin-marker').forEach(el => el.classList.remove('active'));
                 document.querySelectorAll('.pin-number').forEach(el => el.classList.remove('active'));
                 const pinEl = marker.getElement().querySelector('.pin-marker');
@@ -364,13 +379,13 @@
                 if(pinEl) pinEl.classList.add('active');
                 if(numEl) numEl.classList.add('active');
 
-                // NAVİGASYONU BAŞLAT (HERKES İÇİN)
+                // Navigasyonu Başlat
                 map.setView(marker.getLatLng(), map.getZoom());
                 targetLatLng = marker.getLatLng();
                 document.getElementById("navPanel").style.display = "flex";
                 document.getElementById("navDistance").innerText = "Hazır";
 
-                // YÖNETİCİ + EDİT MODU İSE: SİLME BUTONU POPUP AÇ
+                // 2. YÖNETİCİ + EDİT MODU İSE: SİLME BUTONU POPUP AÇ
                 if (userRole === 'admin' && isEditMode) {
                     const btnHtml = `<button onclick="triggerDelete('${key}')" class="popup-delete-btn">
                                         <svg style="width:16px;height:16px;fill:white;" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
@@ -461,8 +476,8 @@
         for (let key in markers) {
             const marker = markers[key];
             if (marker.myTitle.toString() === value) {
-                // BULUNANI EN ÖNE AL
-                marker.setZIndexOffset(1000);
+                // BULUNANI NÜKLEER GÜÇLE EN ÖNE AL (1 MİLYON Z-INDEX)
+                marker.setZIndexOffset(1000000);
 
                 const pinEl = marker.getElement().querySelector('.pin-marker');
                 const numEl = marker.getElement().querySelector('.pin-number');
