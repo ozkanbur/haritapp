@@ -240,8 +240,9 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script type="module">
+    // İTHALAT (IMPORT) GÜNCELLEMESİ: get, onChildChanged, onChildRemoved eklendi
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, push, onChildAdded, remove, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getDatabase, ref, push, onChildAdded, onChildChanged, onChildRemoved, remove, update, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyBALVTNtwpBZEB4t8fhb7_I3nZJZzrnJU4",
@@ -309,6 +310,9 @@
             addBtn.style.display = 'flex';
             lockBtn.style.display = 'flex'; 
         }
+        
+        // Giriş yapıldığında verileri yükle
+        loadMarkersOptimized();
     }
 
     // --- HARİTA AYARLARI ---
@@ -347,13 +351,18 @@
         map.closePopup(); 
     };
 
-    // --- FIREBASE VERİ OKUMA ---
-    onChildAdded(pointsRef, (snap) => {
-        const d = snap.val();
-        const key = snap.key;
-        const marker = L.marker([d.lat, d.lng], { icon: createNumberIcon(d.title), draggable: false }).addTo(map);
+    // --- OPTİMİZE EDİLMİŞ FIREBASE VERİ YÖNETİMİ ---
 
-        marker.myTitle = d.title; marker.firebaseKey = key;
+    let initialLoadDone = false; // İlk yükleme kontrolü
+
+    // 1. Yardımcı Fonksiyon: Marker Oluşturma ve Ayarlama
+    // Bu fonksiyon hem toplu yüklemede hem de tekli eklemede ortak kullanılır.
+    function createAndSetupMarker(key, d) {
+        const marker = L.marker([d.lat, d.lng], { icon: createNumberIcon(d.title), draggable: false });
+        marker.myTitle = d.title; 
+        marker.firebaseKey = key;
+
+        // Eğer o an edit modundaysak draggable yap
         if (isEditMode) marker.dragging.enable();
 
         marker.on('dragend', (event) => {
@@ -399,7 +408,78 @@
                 }
             }
         });
-        markers[key] = marker;
+
+        return marker;
+    }
+
+    // 2. Toplu Yükleme (Batch Loading)
+    async function loadMarkersOptimized() {
+        if(initialLoadDone) return; // Zaten yüklendiyse tekrar yapma
+
+        const snapshot = await get(pointsRef);
+        const batchMarkers = [];
+
+        if (snapshot.exists()) {
+            snapshot.forEach((child) => {
+                const key = child.key;
+                const val = child.val();
+                
+                const marker = createAndSetupMarker(key, val);
+                markers[key] = marker; // Global objeye kaydet (arama için)
+                batchMarkers.push(marker); // Diziye at (harita için)
+            });
+
+            // Tüm markerları TEK SEFERDE haritaya bas (Performans Artışı)
+            L.layerGroup(batchMarkers).addTo(map);
+        }
+
+        initialLoadDone = true; // İlk yükleme bitti
+    }
+
+    // 3. Realtime Listeners (Sadece Değişiklikler İçin)
+    
+    // Yeni eklenenleri dinle (İlk yüklemeden sonrakiler için)
+    onChildAdded(pointsRef, (snap) => {
+        if (!initialLoadDone) return; // İlk yükleme sırasında çalışmasın
+        if (markers[snap.key]) return; // Zaten varsa tekrar ekleme
+
+        const marker = createAndSetupMarker(snap.key, snap.val());
+        markers[snap.key] = marker;
+        marker.addTo(map);
+    });
+
+    // Değişiklikleri dinle (Sürükleme vs.)
+    onChildChanged(pointsRef, (snap) => {
+        const marker = markers[snap.key];
+        if (marker) {
+            const d = snap.val();
+            marker.setLatLng([d.lat, d.lng]);
+            // İstif numarası değiştiyse güncelle (şu anki sistemde numara değişimi yok ama altyapı hazır olsun)
+            if(marker.myTitle !== d.title) {
+                marker.setIcon(createNumberIcon(d.title));
+                marker.myTitle = d.title;
+            }
+            // Eğer o an bu marker'a gidiliyorsa rotayı güncelle
+            if(targetLatLng && targetLatLng.equals(marker.getLatLng())) { 
+                targetLatLng = marker.getLatLng(); 
+                // updateRoute(); // (Opsiyonel) Canlı takip sırasında hedef kayarsa çizgi güncellenebilir
+            }
+        }
+    });
+
+    // Silinenleri dinle
+    onChildRemoved(pointsRef, (snap) => {
+        const marker = markers[snap.key];
+        if (marker) {
+            map.removeLayer(marker);
+            delete markers[snap.key];
+            
+            // Eğer silinen hedef ise navigasyonu kapat
+            if (targetLatLng && targetLatLng.equals(marker.getLatLng())) {
+                document.getElementById("navPanel").style.display = "none";
+                stopTracking();
+            }
+        }
     });
 
     // --- NAVİGASYON (CANLI TAKİP) ---
