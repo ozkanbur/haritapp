@@ -6,6 +6,9 @@
     <title>Harita - Admin Paneli</title>
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&display=swap');
@@ -95,45 +98,40 @@
         #addMarkerBtn.active { background: #ef4444; }
         #lockBtn { top: 85px; background: #64748b; }
         #lockBtn.unlocked { background: #22c55e; }
+        /* EXCEL BUTONU STİLİ */
+        #exportBtn { top: 150px; background: #16a34a; }
 
         /* Marker Stili */
-        /* ÖNEMLİ: z-index sorununu çözmek için wrapper'a da stil veriyoruz */
-        .pin-wrapper { 
-            position: relative; width: 50px; height: 60px; cursor: pointer; 
-        }
+        .pin-wrapper { position: relative; width: 50px; height: 60px; cursor: pointer; }
         
         .pin-marker { 
             position: absolute; width: 36px; height: 36px; background: #2563eb; 
             border-radius: 50% 50% 50% 0; left: 7px; top: 0; 
             border: 3px solid white; transition: background 0.3s;
             transform: rotate(-45deg); 
-            z-index: 10; /* Varsayılan katman */
+            z-index: 10; 
         }
         .pin-marker::after { content: ''; position: absolute; width: 16px; height: 16px; background: white; border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); }
         
-        /* NUMARANIN HER ZAMAN PİNİN ÖNÜNDE OLMASI İÇİN */
         .pin-number { 
             position: absolute; top: -28px; left: 50%; transform: translateX(-50%); 
             color: white; font-weight: bold; font-size: 14px; 
             background: #2563eb; padding: 4px 10px; border-radius: 12px; 
             white-space: nowrap; transition: all 0.3s; 
-            z-index: 20; /* Pin'den daha yüksek */
+            z-index: 20;
         }
         
-        /* ZIPLAMA (Vertical) */
         @keyframes bounceCorrect {
             0%, 100% { transform: translateY(0) rotate(-45deg) scale(1.2); }
             50% { transform: translateY(-15px) rotate(-45deg) scale(1.2); }
         }
 
-        /* AKTİF OLUNCA ÇOK YÜKSEK Z-INDEX */
         .pin-marker.active { 
             background: #ef4444 !important; 
             animation: bounceCorrect 0.8s infinite ease-in-out;
         }
         .pin-marker.active + .pin-number { background: #ef4444 !important; top: -35px; }
 
-        /* MAVİ GPS NOKTASI */
         .user-location-dot {
             width: 20px; height: 20px; background-color: #4285F4; border: 3px solid white; border-radius: 50%;
             box-shadow: 0 0 10px rgba(0,0,0,0.5); animation: pulse 2s infinite;
@@ -144,7 +142,6 @@
             100% { box-shadow: 0 0 0 0 rgba(66, 133, 244, 0); }
         }
         
-        /* Popup Sil Butonu */
         .leaflet-popup-content-wrapper { border-radius: 12px; }
         .leaflet-popup-content { margin: 8px; text-align: center; }
         .popup-delete-btn {
@@ -155,10 +152,17 @@
         .popup-delete-btn:hover { background: #dc2626; }
 
         .leaflet-container.crosshair-cursor-enabled { cursor: crosshair; }
-        
-        /* ÖNEMLİ: Seçilen marker'ın Leaflet katmanında en üstte durmasını garantiler */
-        .leaflet-marker-icon.active-zindex {
-            z-index: 1000000 !important;
+        .leaflet-marker-icon.active-zindex { z-index: 1000000 !important; }
+
+        /* KÜMELEME STİLİ İYİLEŞTİRMELERİ */
+        .marker-cluster-small, .marker-cluster-medium, .marker-cluster-large {
+            background-color: rgba(37, 99, 235, 0.6) !important;
+        }
+        .marker-cluster div {
+            background-color: rgba(37, 99, 235, 0.9) !important;
+            color: white !important;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 800;
         }
     </style>
 </head>
@@ -201,6 +205,10 @@
     <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
 </button>
 
+<button id="exportBtn" class="action-btn" title="Excel'e Aktar" style="display: none;">
+    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9v-3H8v3H6V8h2v2h1V8h2v8zm5-1.5c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5-1.5.67-1.5 1.5.67 1.5 1.5 1.5zm-3-3v1.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V11c0-1.66-1.34-3-3-3s-3 1.34-3 3v3h1.5v-3c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5v1.5c0 .83-.67 1.5-1.5 1.5s-1.5-.67-1.5-1.5V11h1.5v2.5z"/></svg>
+</button>
+
 <div id="navPanel">
     <div id="navInfo">Hedefe Mesafe</div>
     <div id="navDistance">-- m</div>
@@ -239,8 +247,9 @@
 <div id="map"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+
 <script type="module">
-    // İTHALAT (IMPORT) GÜNCELLEMESİ: get, onChildChanged, onChildRemoved eklendi
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, push, onChildAdded, onChildChanged, onChildRemoved, remove, update, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
@@ -262,6 +271,7 @@
     let userRole = null;
     let targetRole = null;
     let isEditMode = false;
+    let lastActiveMarker = null; // PERFORMANS İÇİN ÖNEMLİ: Son tıklananı tutar
     
     // SVG İKONLAR
     const svgPlus = '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>';
@@ -303,15 +313,18 @@
         
         const addBtn = document.getElementById('addMarkerBtn');
         const lockBtn = document.getElementById('lockBtn');
+        const exportBtn = document.getElementById('exportBtn'); // Yeni buton
+
         if (userRole === 'guest') { 
             addBtn.style.display = 'none'; 
             lockBtn.style.display = 'none'; 
+            exportBtn.style.display = 'none';
         } else { 
             addBtn.style.display = 'flex';
             lockBtn.style.display = 'flex'; 
+            exportBtn.style.display = 'flex';
         }
         
-        // Giriş yapıldığında verileri yükle
         loadMarkersOptimized();
     }
 
@@ -322,13 +335,25 @@
 
     const map = L.map('map', {
         center: bounds.getCenter(),
-        zoom: 16, minZoom: 14, maxZoom: 22, zoomControl: false
+        zoom: 16, minZoom: 14, maxZoom: 22, zoomControl: false,
+        preferCanvas: true, // Performans için
+        markerZoomAnimation: false // Mobilde takılmayı önlemek için
     });
     L.control.zoom({ position: 'bottomright' }).addTo(map);
     L.imageOverlay('harita.jpg', bounds).addTo(map);
     map.fitBounds(bounds);
 
-    const markers = {};
+    // --- KÜMELEME (CLUSTERING) AYARLARI ---
+    // Bu kısım 1000 tane markerı gruplayarak kasmayı engeller
+    const markersCluster = L.markerClusterGroup({
+        disableClusteringAtZoom: 19, // Çok yaklaştığında kümeyi aç, tek tek göster
+        spiderfyOnMaxZoom: true,
+        showCoverageOnHover: false,
+        chunkedLoading: true // Yüklemeyi parçalara bölerek tarayıcıyı dondurmaz
+    });
+    map.addLayer(markersCluster);
+
+    const markers = {}; // Hızlı erişim için
     let addingMarkerMode = false;
     let tempLatLng = null;
     let markerToDelete = null;
@@ -344,25 +369,20 @@
         });
     }
 
-    // --- GLOBAL SİLME TETİKLEYİCİSİ ---
     window.triggerDelete = function(key) {
         markerToDelete = { key: key, marker: markers[key] };
         document.getElementById("deleteModal").classList.add("show");
         map.closePopup(); 
     };
 
-    // --- OPTİMİZE EDİLMİŞ FIREBASE VERİ YÖNETİMİ ---
+    // --- OPTİMİZE EDİLMİŞ VERİ YÖNETİMİ ---
+    let initialLoadDone = false;
 
-    let initialLoadDone = false; // İlk yükleme kontrolü
-
-    // 1. Yardımcı Fonksiyon: Marker Oluşturma ve Ayarlama
-    // Bu fonksiyon hem toplu yüklemede hem de tekli eklemede ortak kullanılır.
     function createAndSetupMarker(key, d) {
         const marker = L.marker([d.lat, d.lng], { icon: createNumberIcon(d.title), draggable: false });
         marker.myTitle = d.title; 
         marker.firebaseKey = key;
 
-        // Eğer o an edit modundaysak draggable yap
         if (isEditMode) marker.dragging.enable();
 
         marker.on('dragend', (event) => {
@@ -371,36 +391,39 @@
             if(targetLatLng && targetLatLng.equals(marker.getLatLng())) { targetLatLng = newPos; updateRoute(); }
         });
 
-        // MARKER TIKLAMA OLAYI
+        // TIKLAMA OLAYI (Performans Optimize Edildi)
         marker.on('click', (e) => {
             L.DomEvent.stopPropagation(e);
             
             if (!addingMarkerMode) {
-                // SIFIRLA VE YÜKSELT
-                for(let k in markers) markers[k].setZIndexOffset(0);
-                marker.setZIndexOffset(1000000); // Tıklananı en üste al
+                // Sadece son aktif olanı temizle (Döngü yok, kasma yok)
+                if (lastActiveMarker) {
+                    lastActiveMarker.setZIndexOffset(0);
+                    const oldPin = lastActiveMarker.getElement()?.querySelector('.pin-marker');
+                    const oldNum = lastActiveMarker.getElement()?.querySelector('.pin-number');
+                    if(oldPin) oldPin.classList.remove('active');
+                    if(oldNum) oldNum.classList.remove('active');
+                }
 
-                // 1. HERKES İÇİN: Rota Panelini Aç
-                document.querySelectorAll('.pin-marker').forEach(el => el.classList.remove('active'));
-                document.querySelectorAll('.pin-number').forEach(el => el.classList.remove('active'));
+                marker.setZIndexOffset(1000000);
                 const pinEl = marker.getElement().querySelector('.pin-marker');
                 const numEl = marker.getElement().querySelector('.pin-number');
                 if(pinEl) pinEl.classList.add('active');
                 if(numEl) numEl.classList.add('active');
 
-                // Navigasyonu Başlat
-                map.setView(marker.getLatLng(), map.getZoom());
+                lastActiveMarker = marker; // Yeni aktif markerı kaydet
+
+                // Navigasyon
+                map.setView(marker.getLatLng(), 19); // Yakınlaş
                 targetLatLng = marker.getLatLng();
                 document.getElementById("navPanel").style.display = "flex";
                 document.getElementById("navDistance").innerText = "Hazır";
 
-                // 2. YÖNETİCİ + EDİT MODU İSE: SİLME BUTONU POPUP AÇ
                 if (userRole === 'admin' && isEditMode) {
                     const btnHtml = `<button onclick="triggerDelete('${key}')" class="popup-delete-btn">
                                         <svg style="width:16px;height:16px;fill:white;" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
                                         Sil
                                      </button>`;
-                    
                     L.popup({ offset: [0, -40], closeButton: false }) 
                         .setLatLng(marker.getLatLng())
                         .setContent(btnHtml)
@@ -412,9 +435,8 @@
         return marker;
     }
 
-    // 2. Toplu Yükleme (Batch Loading)
     async function loadMarkersOptimized() {
-        if(initialLoadDone) return; // Zaten yüklendiyse tekrar yapma
+        if(initialLoadDone) return;
 
         const snapshot = await get(pointsRef);
         const batchMarkers = [];
@@ -425,56 +447,47 @@
                 const val = child.val();
                 
                 const marker = createAndSetupMarker(key, val);
-                markers[key] = marker; // Global objeye kaydet (arama için)
-                batchMarkers.push(marker); // Diziye at (harita için)
+                markers[key] = marker; 
+                batchMarkers.push(marker); 
             });
 
-            // Tüm markerları TEK SEFERDE haritaya bas (Performans Artışı)
-            L.layerGroup(batchMarkers).addTo(map);
+            // HEPSİNİ KÜMEYE EKLE (Map yerine Cluster'a)
+            markersCluster.addLayers(batchMarkers);
         }
 
-        initialLoadDone = true; // İlk yükleme bitti
+        initialLoadDone = true;
     }
 
-    // 3. Realtime Listeners (Sadece Değişiklikler İçin)
-    
-    // Yeni eklenenleri dinle (İlk yüklemeden sonrakiler için)
     onChildAdded(pointsRef, (snap) => {
-        if (!initialLoadDone) return; // İlk yükleme sırasında çalışmasın
-        if (markers[snap.key]) return; // Zaten varsa tekrar ekleme
+        if (!initialLoadDone) return; 
+        if (markers[snap.key]) return; 
 
         const marker = createAndSetupMarker(snap.key, snap.val());
         markers[snap.key] = marker;
-        marker.addTo(map);
+        markersCluster.addLayer(marker); // Kümeye ekle
     });
 
-    // Değişiklikleri dinle (Sürükleme vs.)
     onChildChanged(pointsRef, (snap) => {
         const marker = markers[snap.key];
         if (marker) {
             const d = snap.val();
             marker.setLatLng([d.lat, d.lng]);
-            // İstif numarası değiştiyse güncelle (şu anki sistemde numara değişimi yok ama altyapı hazır olsun)
             if(marker.myTitle !== d.title) {
                 marker.setIcon(createNumberIcon(d.title));
                 marker.myTitle = d.title;
             }
-            // Eğer o an bu marker'a gidiliyorsa rotayı güncelle
             if(targetLatLng && targetLatLng.equals(marker.getLatLng())) { 
                 targetLatLng = marker.getLatLng(); 
-                // updateRoute(); // (Opsiyonel) Canlı takip sırasında hedef kayarsa çizgi güncellenebilir
             }
         }
     });
 
-    // Silinenleri dinle
     onChildRemoved(pointsRef, (snap) => {
         const marker = markers[snap.key];
         if (marker) {
-            map.removeLayer(marker);
+            markersCluster.removeLayer(marker); // Kümeden sil
             delete markers[snap.key];
             
-            // Eğer silinen hedef ise navigasyonu kapat
             if (targetLatLng && targetLatLng.equals(marker.getLatLng())) {
                 document.getElementById("navPanel").style.display = "none";
                 stopTracking();
@@ -482,7 +495,69 @@
         }
     });
 
-    // --- NAVİGASYON (CANLI TAKİP) ---
+    // --- EXCEL'E AKTAR (CSV) FONKSİYONLARI ---
+    async function getMarkerDataForExport() {
+        const snapshot = await get(pointsRef);
+        const data = [];
+        if (snapshot.exists()) {
+            snapshot.forEach((child) => {
+                const key = child.key;
+                const val = child.val();
+                data.push({
+                    'ID': key,
+                    'İstif No': val.title,
+                    'Enlem': val.lat,
+                    'Boylam': val.lng
+                });
+            });
+        }
+        return data;
+    }
+
+    function convertToCSV(data) {
+        if (data.length === 0) return '';
+        const header = Object.keys(data[0]).join(';') + '\n';
+        const rows = data.map(row => {
+            return Object.values(row)
+                .map(val => (typeof val === 'number' ? val.toString().replace('.', ',') : `"${val}"`))
+                .join(';');
+        }).join('\n');
+        return header + rows;
+    }
+
+    function downloadCSV(csv, filename) {
+        const csvFile = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const downloadLink = document.createElement("a");
+        downloadLink.href = URL.createObjectURL(csvFile);
+        downloadLink.download = filename;
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+    }
+
+    // EXCEL BUTON DİNLEYİCİSİ
+    document.getElementById('exportBtn').addEventListener('click', async () => {
+        const btn = document.getElementById('exportBtn');
+        try {
+            btn.disabled = true;
+            const originalContent = btn.innerHTML;
+            btn.innerHTML = '...'; // Yükleniyor ikonu
+            
+            const data = await getMarkerDataForExport();
+            const csv = convertToCSV(data);
+            const filename = `Harita_Marker_Listesi_${new Date().toISOString().slice(0, 10)}.csv`;
+            
+            downloadCSV(csv, filename);
+            btn.innerHTML = originalContent;
+        } catch (error) {
+            console.error("Hata:", error);
+            alert("Veriler indirilirken hata oluştu.");
+        } finally {
+            btn.disabled = false;
+        }
+    });
+
+    // --- NAVİGASYON ---
     window.startTracking = function() {
         if (!navigator.geolocation) { alert("Cihazınız GPS desteklemiyor."); return; }
         document.getElementById("startNavBtn").style.display = "none";
@@ -509,7 +584,7 @@
                 }
             },
             (error) => { console.error(error); alert("Konum alınamadı. Lütfen GPS izni verin."); stopTracking(); },
-            { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
+            { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
         );
     };
 
@@ -523,7 +598,6 @@
         document.getElementById("navInfo").innerText = "Takip";
     };
 
-    /* --- BUTONLAR --- */
     const lockBtn = document.getElementById('lockBtn');
     lockBtn.addEventListener('click', () => {
         isEditMode = !isEditMode;
@@ -542,31 +616,30 @@
     const searchInput = document.getElementById("searchInput");
     searchInput.addEventListener("input", () => {
         const value = searchInput.value.trim();
-        document.querySelectorAll('.pin-marker').forEach(el => el.classList.remove('active'));
-        document.querySelectorAll('.pin-number').forEach(el => el.classList.remove('active'));
+        
+        // Temizlik
+        if (lastActiveMarker) {
+            lastActiveMarker.setZIndexOffset(0);
+            const oldPin = lastActiveMarker.getElement()?.querySelector('.pin-marker');
+            const oldNum = lastActiveMarker.getElement()?.querySelector('.pin-number');
+            if(oldPin) oldPin.classList.remove('active');
+            if(oldNum) oldNum.classList.remove('active');
+            lastActiveMarker = null;
+        }
+        
         document.getElementById("navPanel").style.display = "none";
         stopTracking();
         map.closePopup();
-
-        // ÖNCE HEPSİNİ SIFIRLA
-        for(let k in markers) markers[k].setZIndexOffset(0);
 
         if (value === "") return;
 
         for (let key in markers) {
             const marker = markers[key];
             if (marker.myTitle.toString() === value) {
-                // BULUNANI NÜKLEER GÜÇLE EN ÖNE AL (1 MİLYON Z-INDEX)
-                marker.setZIndexOffset(1000000);
-
-                const pinEl = marker.getElement().querySelector('.pin-marker');
-                const numEl = marker.getElement().querySelector('.pin-number');
-                if(pinEl) pinEl.classList.add('active');
-                if(numEl) numEl.classList.add('active');
-                
-                map.setView(marker.getLatLng(), map.getZoom());
-                targetLatLng = marker.getLatLng();
-                document.getElementById("navPanel").style.display = "flex";
+                // KÜMELENME İÇİN ÖZEL ARAMA
+                markersCluster.zoomToShowLayer(marker, function() {
+                    marker.fire('click'); // Bulunan markerı tıkla
+                });
                 break;
             }
         }
@@ -601,13 +674,18 @@
             markerNumberInput.value = "";
             markerNumberInput.focus();
         } else {
+            // Boşluğa tıklayınca seçimi kaldır
+            if (lastActiveMarker) {
+                lastActiveMarker.setZIndexOffset(0);
+                const oldPin = lastActiveMarker.getElement()?.querySelector('.pin-marker');
+                const oldNum = lastActiveMarker.getElement()?.querySelector('.pin-number');
+                if(oldPin) oldPin.classList.remove('active');
+                if(oldNum) oldNum.classList.remove('active');
+                lastActiveMarker = null;
+            }
             document.getElementById("navPanel").style.display = "none";
-            document.querySelectorAll('.pin-marker').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.pin-number').forEach(el => el.classList.remove('active'));
             stopTracking();
             map.closePopup();
-            // Tıklama boşluğa ise z-indexleri sıfırla
-            for(let k in markers) markers[k].setZIndexOffset(0);
         }
     });
 
@@ -624,15 +702,13 @@
     });
     cancelBtn.addEventListener("click", () => { addModal.classList.remove("show"); tempLatLng = null; });
     
-    // Silme Modalı
     const deleteModal = document.getElementById("deleteModal");
     const confirmDeleteBtn = document.getElementById("confirmDeleteBtn");
     const deleteCancelBtn = document.getElementById("deleteCancelBtn");
     confirmDeleteBtn.addEventListener("click", () => {
         if (markerToDelete) {
             remove(ref(db, `points/${markerToDelete.key}`));
-            map.removeLayer(markerToDelete.marker);
-            delete markers[markerToDelete.key];
+            // Not: onChildRemoved tetikleneceği için buradan silmeye gerek yok
             deleteModal.classList.remove("show");
             markerToDelete = null;
             document.getElementById("navPanel").style.display = "none";
