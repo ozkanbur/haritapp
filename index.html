@@ -15,7 +15,6 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { height: 100%; overflow: hidden; background: #222; font-family: 'Montserrat', sans-serif; }
         
-        /* Harita alanı varsayılan olarak gri. Resim gelmese bile bunu göreceksin */
         #map { height: 100%; width: 100%; background-color: #444; display: none; }
 
         /* --- UI STİLLERİ --- */
@@ -51,6 +50,7 @@
         .btn-save { background: #2563eb; color: white; flex: 1; padding: 12px; border:none; border-radius:8px; font-weight:bold; cursor:pointer;}
         .btn-cancel { background: #e5e7eb; color: #374151; flex: 1; padding: 12px; border:none; border-radius:8px; font-weight:bold; cursor:pointer;}
         .error-msg { color: #ef4444; font-size: 14px; margin-bottom: 15px; display: none; text-align: center; font-weight: 600; }
+        .btn-delete { background: #ef4444; color: white; flex: 1; padding: 12px; border:none; border-radius:8px; font-weight:bold; cursor:pointer;}
 
         /* BUTONLAR */
         .search-box { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); width: 200px; padding: 12px; z-index: 1000; border-radius: 24px; border: 2px solid #2563eb; display: none; text-align: center; }
@@ -59,6 +59,7 @@
         #addMarkerBtn { top: 20px; background: #2563eb; }
         #addMarkerBtn.active { background: #ef4444; }
         #lockBtn { top: 85px; background: #64748b; }
+        #lockBtn.unlocked { background: #ef4444; }
         #exportBtn { top: 150px; background: #16a34a; }
 
         /* MARKER ICON */
@@ -75,6 +76,7 @@
         .marker-cluster-small, .marker-cluster-medium, .marker-cluster-large { background-color: rgba(37, 99, 235, 0.6) !important; }
         .marker-cluster div { background-color: rgba(37, 99, 235, 0.9) !important; color: white !important; font-weight: 800; }
         .leaflet-container.crosshair-cursor-enabled { cursor: crosshair; }
+        .map-edit-active { border: 4px solid #ef4444; box-sizing: border-box; }
     </style>
 </head>
 <body>
@@ -138,10 +140,18 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, push, onChildAdded, onChildChanged, onChildRemoved, remove, update, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
+    // --- HATA YAKALAYICI (Telefonda sorunu görmek için) ---
+    window.onerror = function(msg, url, line) {
+        alert("SİSTEM HATASI:\n" + msg + "\nSatır: " + line);
+        return false;
+    };
+
+    // --- FIREBASE AYARLARI ---
     const firebaseConfig = {
         apiKey: "AIzaSyBALVTNtwpBZEB4t8fhb7_I3nZJZzrnJU4",
         authDomain: "appharita.firebaseapp.com",
-        databaseURL: "https://appharita-default-rtdb.firebaseio.com",
+        // ÖNEMLİ: Eğer veriler gelmezse, Firebase konsolundaki Realtime Database sekmesindeki URL ile burayı değiştirin.
+        databaseURL: "https://appharita-default-rtdb.firebaseio.com", 
         projectId: "appharita",
         storageBucket: "appharita.firebasestorage.app",
         messagingSenderId: "825896245452",
@@ -149,9 +159,31 @@
         measurementId: "G-3GS17644DL"
     };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-    const pointsRef = ref(db, "points");
+    let app, db, pointsRef;
+
+    try {
+        app = initializeApp(firebaseConfig);
+        db = getDatabase(app);
+        // Veritabanında klasör adı küçük harfle "points" olduğu için burayı sabitliyorum.
+        pointsRef = ref(db, "points"); 
+        
+    } catch (e) {
+        alert("Firebase Başlatılamadı: " + e.message);
+    }
+
+    // --- BAĞLANTI TESTİ ---
+    // Sayfa açılınca veritabanına ulaşıp ulaşamadığını test edip size bilgi verecek.
+    get(pointsRef).then((snapshot) => {
+        if (snapshot.exists()) {
+            console.log("Veriler başarıyla bulundu.");
+            // İsterseniz aşağıdaki alert'i kaldırabilirsiniz, test amaçlı koydum.
+            // alert("BAĞLANTI BAŞARILI! Veriler yükleniyor...");
+        } else {
+            alert("UYARI: Veritabanına bağlanıldı ancak 'points' klasörü boş görünüyor veya bulunamadı.");
+        }
+    }).catch((error) => {
+        alert("VERİ ÇEKİLEMEDİ! Lütfen databaseURL'yi kontrol edin.\nHata Mesajı: " + error.message);
+    });
 
     let userRole = null;
     let targetRole = null;
@@ -162,9 +194,9 @@
     let tempLatLng = null;
     let markerToDelete = null;
 
-    // --- BURASI ÇOK ÖNEMLİ: BUTONLARI ARTIK BURADAN DİNLİYORUZ ---
+    // --- BUTON İŞLEMLERİ ---
     
-    // 1. Giriş Butonlarını Yakala ve Dinle
+    // Giriş Butonları
     document.getElementById('btnGuest').addEventListener('click', () => {
         userRole = 'guest';
         initAppLayout();
@@ -178,14 +210,13 @@
         openAuthModal('admin');
     });
 
-    // 2. Modal Butonlarını Yakala
+    // Modal Butonları
     document.getElementById('btnAuthCancel').addEventListener('click', () => {
         document.getElementById('authModal').style.display = 'none';
     });
 
     document.getElementById('btnAuthLogin').addEventListener('click', attemptLogin);
 
-    // Fonksiyonlar
     function openAuthModal(role) {
         targetRole = role;
         document.getElementById('authModal').style.display = 'flex';
@@ -220,7 +251,7 @@
         mapEl.style.display = 'block';
         document.getElementById('searchInput').style.display = 'block';
         
-        // HARİTA BOYUTUNU DÜZELTME (Bu çok kritik)
+        // Harita boyutunu düzelt
         setTimeout(() => {
             map.invalidateSize();
             map.fitBounds(bounds);
@@ -268,7 +299,6 @@
         });
     }
 
-    // Window'a global fonksiyon atıyoruz ki popup içinden erişilebilsin
     window.triggerDeleteGlobal = function(key) {
         markerToDelete = { key: key, marker: markers[key] };
         document.getElementById("deleteModal").classList.add("show");
@@ -276,7 +306,10 @@
     };
 
     function createMarker(key, d) {
-        const marker = L.marker([d.lat, d.lng], { icon: createNumberIcon(d.title), draggable: false });
+        // Hata önleyici: Eğer koordinat yoksa marker oluşturma
+        if (!d.lat || !d.lng) return null;
+
+        const marker = L.marker([d.lat, d.lng], { icon: createNumberIcon(d.title || "?"), draggable: false });
         marker.myTitle = d.title; 
         marker.firebaseKey = key;
 
@@ -313,8 +346,10 @@
     onChildAdded(pointsRef, (snap) => {
         if (markers[snap.key]) return; 
         const marker = createMarker(snap.key, snap.val());
-        markers[snap.key] = marker;
-        markersCluster.addLayer(marker); 
+        if (marker) {
+            markers[snap.key] = marker;
+            markersCluster.addLayer(marker); 
+        }
     });
 
     onChildChanged(pointsRef, (snap) => {
