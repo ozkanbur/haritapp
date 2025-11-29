@@ -6,7 +6,6 @@
     <title>Harita - Admin Paneli</title>
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
 
@@ -325,9 +324,6 @@
             lockBtn.style.display = 'flex'; 
             exportBtn.style.display = 'flex';
         }
-
-        // BURASI ÇOK ÖNEMLİ: HARİTA AÇILDIĞINDA MARKERLARI YÜKLE
-        loadInitialMarkers();
     }
 
     // --- HARİTA AYARLARI ---
@@ -377,14 +373,11 @@
     };
 
     // --- ANA MARKER YARATMA FONKSİYONU ---
-    function createAndSetupMarker(key, d) {
-        // PÜF NOKTASI: Draggable: true olarak yaratıyoruz ama hemen kilitliyoruz.
-        // Bu sayede özellik yükleniyor ama aktif olmuyor.
-        const marker = L.marker([d.lat, d.lng], { icon: createNumberIcon(d.title), draggable: true });
+    function createMarker(key, d) {
+        // En güvenli yöntem: Varsayılan olarak sürükleme KAPALI (false) başlar.
+        const marker = L.marker([d.lat, d.lng], { icon: createNumberIcon(d.title), draggable: false });
         marker.myTitle = d.title; 
         marker.firebaseKey = key;
-
-        marker.dragging.disable(); // BAŞLANGIÇTA KİLİTLİ
 
         marker.on('dragstart', () => { map.closePopup(); });
 
@@ -436,31 +429,17 @@
         return marker;
     }
 
-    // --- ESKİ USÜL GARANTİ YÜKLEME ---
-    async function loadInitialMarkers() {
-        const snapshot = await get(pointsRef);
-        if (snapshot.exists()) {
-            const batchMarkers = [];
-            snapshot.forEach((child) => {
-                const key = child.key;
-                const val = child.val();
-                
-                // Eğer zaten varsa atla (Çakışma önleme)
-                if(!markers[key]) {
-                    const marker = createAndSetupMarker(key, val);
-                    markers[key] = marker; 
-                    batchMarkers.push(marker); 
-                }
-            });
-            markersCluster.addLayers(batchMarkers);
-        }
-    }
-
-    // --- CANLI TAKİP ---
+    // --- FIREBASE DİNLEYİCİLERİ (Garanti Veri Akışı) ---
     onChildAdded(pointsRef, (snap) => {
-        if (markers[snap.key]) return; // Zaten yüklüyse tekrar ekleme
-        const marker = createAndSetupMarker(snap.key, snap.val());
+        if (markers[snap.key]) return; // Zaten varsa tekrar ekleme
+        
+        // Marker'ı yarat
+        const marker = createMarker(snap.key, snap.val());
+        
+        // Listeye ekle
         markers[snap.key] = marker;
+        
+        // Kümeye ekle
         markersCluster.addLayer(marker); 
     });
 
@@ -502,7 +481,7 @@
         
         map.closePopup();
 
-        // TÜM MARKERLARI DÖNGÜYE AL VE KİLİDİ AÇ/KAPA
+        // Kilit durumuna göre tüm markerları güncelle
         for (let key in markers) {
             const m = markers[key];
             if(isEditMode) {
