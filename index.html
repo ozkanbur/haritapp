@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Depo Navigasyon - v4.0</title>
+    <title>Depo Navigasyon - v4.1 (Bounce Animasyonu)</title>
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
@@ -71,15 +71,23 @@
         .pin-number { position: absolute; top: -28px; left: 50%; transform: translateX(-50%); color: white; font-weight: bold; font-size: 14px; background: #2563eb; padding: 4px 10px; border-radius: 12px; white-space: nowrap; transition: all 0.3s; }
         .pin-marker.active { background: #ef4444 !important; }
         .pin-marker.active + .pin-number { background: #ef4444 !important; top: -35px; }
+        
+        /* --- YENİ EKLENEN BOUNCE ANIMASYONU --- */
+        @keyframes bounceAction {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+        .bounce-anim {
+            animation: bounceAction 1s infinite ease-in-out;
+        }
+
         .marker-cluster-small, .marker-cluster-medium, .marker-cluster-large { background-color: rgba(37, 99, 235, 0.6) !important; }
         .marker-cluster div { background-color: rgba(37, 99, 235, 0.9) !important; color: white !important; font-weight: 800; }
         .leaflet-container.crosshair-cursor-enabled { cursor: crosshair; }
         .map-edit-active { border: 4px solid #ef4444; box-sizing: border-box; }
         .leaflet-marker-draggable { cursor: move !important; }
 
-        /* --- YENİ NAVİGASYON PANELİ & KULLANICI İKONU --- */
-        
-        /* Ekranın altındaki panel */
+        /* --- NAVİGASYON PANELİ --- */
         #bottomNavPanel {
             position: fixed; bottom: -200px; left: 0; width: 100%;
             background: white; z-index: 2000;
@@ -103,10 +111,9 @@
         .btn-stop-nav {
             background: #ef4444; color: white; border: none; padding: 15px;
             border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer;
-            width: 100%; display: none; /* Başlangıçta gizli */
+            width: 100%; display: none; 
         }
         
-        /* Kullanıcı Mavi Nokta Animasyonu */
         .user-location-marker {
             width: 20px; height: 20px; background: #4285F4; 
             border: 3px solid white; border-radius: 50%;
@@ -124,11 +131,11 @@
 </head>
 <body>
 
-<div id="versionTag">v4.0 - Canlı Navigasyon</div>
+<div id="versionTag">v4.1 - Bounce Animasyonu</div>
 
 <div id="loginScreen">
     <div class="login-container">
-        <div class="brand-name">Özkan KANBUR - v4.0</div>
+        <div class="brand-name">Özkan KANBUR - v4.1</div>
         <div class="brand-title">Orman Endüstri Mühendisi</div>
         <button id="btnGuest" class="login-btn btn-guest">Misafir Olarak Devam Et</button>
         <button id="btnUser" class="login-btn btn-user">Kullanıcı Girişi Yap</button>
@@ -169,12 +176,10 @@
         </div>
         <div id="navDistance" class="nav-distance">-- m</div>
     </div>
-    
     <button id="btnStartNav" class="btn-start-nav">
         <svg style="width:24px;height:24px;fill:white" viewBox="0 0 24 24"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg>
         İstife Git (Başlat)
     </button>
-    
     <button id="btnStopNav" class="btn-stop-nav">Navigasyonu Bitir</button>
 </div>
 
@@ -209,7 +214,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, push, onChildAdded, onChildChanged, onChildRemoved, remove, update, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    // Hata Bastırma
     window.onerror = function(msg) { if (msg.includes("maxZoom")) return false; };
 
     const firebaseConfig = {
@@ -239,14 +243,12 @@
     let tempLatLng = null;
     let markerToDelete = null;
 
-    // --- NAVİGASYON DEĞİŞKENLERİ ---
     let navigationActive = false;
-    let watchId = null;            // GPS izleme ID'si
-    let userMarker = null;         // Mavi nokta
-    let navPolyline = null;        // Kesikli çizgi
-    let currentTargetLatLng = null; // Gidilecek hedef
+    let watchId = null;
+    let userMarker = null;
+    let navPolyline = null;
+    let currentTargetLatLng = null;
 
-    // --- BUTON İŞLEMLERİ ---
     document.getElementById('btnGuest').addEventListener('click', () => { userRole = 'guest'; initAppLayout(); });
     document.getElementById('btnUser').addEventListener('click', () => { openAuthModal('user'); });
     document.getElementById('btnAdmin').addEventListener('click', () => { openAuthModal('admin'); });
@@ -289,9 +291,6 @@
         }
     }
 
-    // --- HARİTA VE KOORDİNATLAR (GÜNCELLENDİ) ---
-    // Sol Alt: 41.947443, 34.756365
-    // Sağ Üst: 41.952599, 34.764444
     const southWest = L.latLng(41.947443, 34.756365);
     const northEast = L.latLng(41.952599, 34.764444);
     const bounds = L.latLngBounds(southWest, northEast);
@@ -312,7 +311,6 @@
     const markersCluster = L.markerClusterGroup({ disableClusteringAtZoom: 19, spiderfyOnMaxZoom: true, showCoverageOnHover: false });
     map.addLayer(markersCluster);
 
-    // --- ICON OLUŞTURMA ---
     function createNumberIcon(num) {
         return L.divIcon({
             className: "custom-div-icon",
@@ -326,7 +324,6 @@
         document.getElementById("deleteModal").classList.add("show");
     };
 
-    // --- MARKER OLUŞTURMA VE TIKLAMA MANTIĞI ---
     function createMarker(key, d) {
         if(!d.lat || !d.lng) return null;
         
@@ -342,33 +339,38 @@
                 .catch(() => marker.setLatLng([d.lat, d.lng]));
         });
 
-        // TIKLAMA OLAYI: Panel Açma
         marker.on('click', (e) => {
             if(marker.dragging && marker.dragging.enabled() && marker._isDragging) return;
             L.DomEvent.stopPropagation(e);
             
             if (!addingMarkerMode) {
-                // Aktif marker'ı vurgula
+                // Önceki aktif markerı temizle
                 if (lastActiveMarker) {
                     const el = lastActiveMarker.getElement();
-                    if(el) { el.querySelector('.pin-marker')?.classList.remove('active'); el.querySelector('.pin-number')?.classList.remove('active'); }
+                    if(el) { 
+                        el.querySelector('.pin-marker')?.classList.remove('active'); 
+                        el.querySelector('.pin-number')?.classList.remove('active'); 
+                        el.querySelector('.pin-wrapper')?.classList.remove('bounce-anim'); // Animasyonu durdur
+                    }
                 }
+                
+                // Yeni markerı aktif yap ve animasyon ekle
                 const el = marker.getElement();
-                if(el) { el.querySelector('.pin-marker')?.classList.add('active'); el.querySelector('.pin-number')?.classList.add('active'); }
+                if(el) { 
+                    el.querySelector('.pin-marker')?.classList.add('active'); 
+                    el.querySelector('.pin-number')?.classList.add('active'); 
+                    el.querySelector('.pin-wrapper')?.classList.add('bounce-anim'); // Animasyonu başlat
+                }
                 lastActiveMarker = marker; 
                 
-                // Haritayı ortala
                 map.setView(marker.getLatLng(), map.getZoom());
 
-                // --- ALT PANELİ GÜNCELLE VE AÇ ---
                 document.getElementById('navTargetTitle').innerText = "İstif No: " + d.title;
                 document.getElementById('navDistance').innerText = "-- m";
                 document.getElementById('bottomNavPanel').classList.add('active');
                 
-                // Hedefi kaydet
                 currentTargetLatLng = marker.getLatLng();
 
-                // Eğer navigasyon zaten açıksa buton durumunu güncelle
                 if(navigationActive) {
                     document.getElementById('btnStartNav').style.display = 'none';
                     document.getElementById('btnStopNav').style.display = 'block';
@@ -381,22 +383,16 @@
         return marker;
     }
 
-    // --- NAVİGASYON FONKSİYONLARI ---
-
-    // 1. Navigasyon Başlat
     document.getElementById('btnStartNav').addEventListener('click', () => {
         if(!currentTargetLatLng) return;
 
-        // GPS İzni İste ve İzlemeyi Başlat
         if (navigator.geolocation) {
             navigationActive = true;
             document.getElementById('btnStartNav').style.display = 'none';
             document.getElementById('btnStopNav').style.display = 'block';
 
-            // Mevcut çizgi varsa sil
             if(navPolyline) { map.removeLayer(navPolyline); }
             
-            // WatchPosition Başlat (Sürekli takip)
             watchId = navigator.geolocation.watchPosition(updateUserLocation, locationError, {
                 enableHighAccuracy: true,
                 maximumAge: 1000,
@@ -408,32 +404,38 @@
         }
     });
 
-    // 2. Navigasyon Bitir
     document.getElementById('btnStopNav').addEventListener('click', stopNavigation);
 
     function stopNavigation() {
         navigationActive = false;
         if(watchId) navigator.geolocation.clearWatch(watchId);
         watchId = null;
-        
-        // Çizgiyi kaldır
         if(navPolyline) { map.removeLayer(navPolyline); navPolyline = null; }
-        
-        // Mavi noktayı kaldır (isteğe bağlı, kalabilir de)
         if(userMarker) { map.removeLayer(userMarker); userMarker = null; }
 
         document.getElementById('btnStartNav').style.display = 'flex';
         document.getElementById('btnStopNav').style.display = 'none';
         document.getElementById('navDistance').innerText = "-- m";
+        
+        // Navigasyon bitince paneli de kapatabiliriz veya marker seçimini kaldırabiliriz
+        // Şimdilik sadece seçimi kaldırıyoruz
+        if (lastActiveMarker) {
+             const el = lastActiveMarker.getElement();
+             if(el) { 
+                 el.querySelector('.pin-marker')?.classList.remove('active'); 
+                 el.querySelector('.pin-number')?.classList.remove('active'); 
+                 el.querySelector('.pin-wrapper')?.classList.remove('bounce-anim');
+             }
+             lastActiveMarker = null;
+        }
+        document.getElementById('bottomNavPanel').classList.remove('active');
     }
 
-    // 3. Konum Güncellendiğinde Çalışan Fonksiyon
     function updateUserLocation(position) {
         const userLat = position.coords.latitude;
         const userLng = position.coords.longitude;
         const userLatLng = L.latLng(userLat, userLng);
 
-        // A) Mavi Noktayı Çiz/Güncelle
         if (!userMarker) {
             const userIcon = L.divIcon({ className: 'user-location-marker', iconSize: [20, 20], iconAnchor: [10, 10] });
             userMarker = L.marker(userLatLng, {icon: userIcon}).addTo(map);
@@ -441,13 +443,10 @@
             userMarker.setLatLng(userLatLng);
         }
 
-        // B) Eğer hedef varsa çizgi çiz ve mesafe hesapla
         if (navigationActive && currentTargetLatLng) {
-            // Mesafeyi hesapla (metre)
             const distance = map.distance(userLatLng, currentTargetLatLng);
             document.getElementById('navDistance').innerText = Math.round(distance) + " m";
 
-            // Çizgiyi (Polyline) Çiz
             if (navPolyline) {
                 navPolyline.setLatLngs([userLatLng, currentTargetLatLng]);
             } else {
@@ -455,7 +454,7 @@
                     color: '#2563eb',
                     weight: 4,
                     opacity: 0.8,
-                    dashArray: '10, 10' // Kesikli çizgi
+                    dashArray: '10, 10'
                 }).addTo(map);
             }
         }
@@ -463,20 +462,21 @@
 
     function locationError(err) {
         console.warn('GPS Hatası:', err.code, err.message);
-        // Hata olsa bile kullanıcıyı rahatsız etme, sadece konsola yaz
     }
 
-    // Haritaya boş tıklayınca paneli kapat
     map.on('click', (e) => {
         if(!addingMarkerMode && !navigationActive) {
             document.getElementById('bottomNavPanel').classList.remove('active');
             if (lastActiveMarker) {
                  const el = lastActiveMarker.getElement();
-                 if(el) { el.querySelector('.pin-marker')?.classList.remove('active'); el.querySelector('.pin-number')?.classList.remove('active'); }
+                 if(el) { 
+                     el.querySelector('.pin-marker')?.classList.remove('active'); 
+                     el.querySelector('.pin-number')?.classList.remove('active'); 
+                     el.querySelector('.pin-wrapper')?.classList.remove('bounce-anim'); // Animasyonu durdur
+                 }
                  lastActiveMarker = null;
             }
         }
-        // Marker ekleme modunda ise
         if (addingMarkerMode) {
             tempLatLng = e.latlng;
             document.getElementById("addModal").classList.add("show");
@@ -485,7 +485,6 @@
         }
     });
 
-    // --- DİĞER STANDART İŞLEMLER (ADD, DELETE, SEARCH) ---
     onChildAdded(pointsRef, (snap) => {
         if (markers[snap.key]) return; 
         const marker = createMarker(snap.key, snap.val());
@@ -514,7 +513,19 @@
             addMarkerBtn.classList.add("active"); 
             addMarkerBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>';
             map.getContainer().classList.add("crosshair-cursor-enabled");
-            document.getElementById('bottomNavPanel').classList.remove('active'); // Ekleme modunda paneli kapat
+            document.getElementById('bottomNavPanel').classList.remove('active');
+            
+            // Ekleme modunda seçimi kaldır
+            if (lastActiveMarker) {
+                 const el = lastActiveMarker.getElement();
+                 if(el) { 
+                     el.querySelector('.pin-marker')?.classList.remove('active'); 
+                     el.querySelector('.pin-number')?.classList.remove('active'); 
+                     el.querySelector('.pin-wrapper')?.classList.remove('bounce-anim');
+                 }
+                 lastActiveMarker = null;
+            }
+
         } else {
             addMarkerBtn.classList.remove("active"); 
             addMarkerBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>';
@@ -544,7 +555,6 @@
         document.getElementById('map').classList.toggle('map-edit-active', isEditMode);
         btn.innerHTML = isEditMode ? '<svg viewBox="0 0 24 24"><path d="M12 17c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6-9h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6h1.9c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm0 12H6V10h12v10z"/></svg>' : '<svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>';
         
-        // Eğer edit modu açılırsa panelde Sil butonu eklenebilir ama şu an basit tutalım
         for (const key in markers) {
             const marker = markers[key];
             if (isEditMode) marker.dragging.enable(); else marker.dragging.disable();
