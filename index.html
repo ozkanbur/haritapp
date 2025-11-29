@@ -98,13 +98,11 @@
         #addMarkerBtn.active { background: #ef4444; }
         #lockBtn { top: 85px; background: #64748b; }
         #lockBtn.unlocked { background: #22c55e; }
-        /* EXCEL BUTONU STİLİ */
         #exportBtn { top: 150px; background: #16a34a; }
 
         /* Marker Stili */
         .pin-wrapper { position: relative; width: 50px; height: 60px; cursor: pointer; }
         
-        /* Düzenleme modu açıkken imleci değiştir */
         .map-edit-active .leaflet-marker-icon .pin-wrapper { cursor: move !important; }
 
         .pin-marker { 
@@ -157,7 +155,6 @@
         .leaflet-container.crosshair-cursor-enabled { cursor: crosshair; }
         .leaflet-marker-icon.active-zindex { z-index: 1000000 !important; }
 
-        /* KÜMELEME STİLİ İYİLEŞTİRMELERİ */
         .marker-cluster-small, .marker-cluster-medium, .marker-cluster-large {
             background-color: rgba(37, 99, 235, 0.6) !important;
         }
@@ -327,8 +324,7 @@
             lockBtn.style.display = 'flex'; 
             exportBtn.style.display = 'flex';
         }
-        
-        loadMarkersOptimized();
+        // Manuel yükleme fonksiyonunu sildim, doğrudan Firebase listener çalışacak.
     }
 
     // --- HARİTA AYARLARI ---
@@ -362,7 +358,7 @@
 
     function createNumberIcon(num) {
         return L.divIcon({
-            className: "", // Orijinal haline çevirdim, sorun buradan kaynaklı olabilir
+            className: "", // Standart sınıf
             html: `<div class="pin-wrapper">
                     <div class="pin-marker" data-pin="${num}"></div>
                     <div class="pin-number">${num}</div>
@@ -377,18 +373,14 @@
         map.closePopup(); 
     };
 
-    // --- MARKER YÖNETİMİ ---
-    let initialLoadDone = false;
-
+    // --- MARKER OLUŞTURMA VE AYARLAMA ---
     function createAndSetupMarker(key, d) {
-        // İŞTE ÇÖZÜM BURASI:
-        // 1. Draggable: true olarak başlat (Motoru çalıştır)
+        // Draggable: true yapıyoruz (motor çalışıyor)
         const marker = L.marker([d.lat, d.lng], { icon: createNumberIcon(d.title), draggable: true });
         marker.myTitle = d.title; 
         marker.firebaseKey = key;
 
-        // 2. Hemen ardından sürüklemeyi elle kapat (Freni çek)
-        // Böylece kilit butonu basılana kadar hareket etmezler.
+        // Hemen ardından disable ediyoruz (fren çekili)
         marker.dragging.disable();
 
         marker.on('dragstart', () => { map.closePopup(); });
@@ -442,31 +434,9 @@
         return marker;
     }
 
-    async function loadMarkersOptimized() {
-        if(initialLoadDone) return;
-
-        const snapshot = await get(pointsRef);
-        const batchMarkers = [];
-
-        if (snapshot.exists()) {
-            snapshot.forEach((child) => {
-                const key = child.key;
-                const val = child.val();
-                
-                const marker = createAndSetupMarker(key, val);
-                markers[key] = marker; 
-                batchMarkers.push(marker); 
-            });
-
-            markersCluster.addLayers(batchMarkers);
-        }
-
-        initialLoadDone = true;
-    }
-
+    // --- FIREBASE DİNLEYİCİLERİ (Garanti Yöntem) ---
     onChildAdded(pointsRef, (snap) => {
-        if (!initialLoadDone) return; 
-        if (markers[snap.key]) return; 
+        if (markers[snap.key]) return; // Zaten varsa tekrar ekleme
 
         const marker = createAndSetupMarker(snap.key, snap.val());
         markers[snap.key] = marker;
@@ -514,7 +484,6 @@
         // Kilit durumuna göre tüm markerları güncelle
         for (let key in markers) {
             const m = markers[key];
-            // Sadece enable/disable kullanıyoruz çünkü init aşamasında zaten draggable: true yaptık.
             if(isEditMode) {
                 m.dragging.enable();
             } else {
