@@ -101,8 +101,6 @@
 
         /* Marker Stili */
         .pin-wrapper { position: relative; width: 50px; height: 60px; cursor: pointer; }
-        
-        /* Edit modunda taşıma imleci */
         .map-edit-active .leaflet-marker-icon .pin-wrapper { cursor: move !important; }
 
         .pin-marker { 
@@ -357,7 +355,7 @@
 
     function createNumberIcon(num) {
         return L.divIcon({
-            className: "",
+            className: "custom-pin",
             html: `<div class="pin-wrapper">
                     <div class="pin-marker" data-pin="${num}"></div>
                     <div class="pin-number">${num}</div>
@@ -372,12 +370,23 @@
         map.closePopup(); 
     };
 
-    // --- ANA MARKER YARATMA FONKSİYONU ---
+    // --- MARKER YARATMA (HATA KORUMALI) ---
     function createMarker(key, d) {
-        // En güvenli yöntem: Varsayılan olarak sürükleme KAPALI (false) başlar.
-        const marker = L.marker([d.lat, d.lng], { icon: createNumberIcon(d.title), draggable: false });
+        // HATA KORUMASI: Enlem ve Boylamın SAYI olduğundan emin ol
+        const lat = parseFloat(d.lat);
+        const lng = parseFloat(d.lng);
+
+        if(isNaN(lat) || isNaN(lng)) {
+            console.error("Hatalı koordinat:", key, d);
+            return null; // Bozuk veriyi atla
+        }
+
+        // Draggable: true yapıyoruz, ama hemen kilitliyoruz
+        const marker = L.marker([lat, lng], { icon: createNumberIcon(d.title), draggable: true });
         marker.myTitle = d.title; 
         marker.firebaseKey = key;
+
+        marker.dragging.disable(); // BAŞLANGIÇTA SÜRÜKLENEMEZ
 
         marker.on('dragstart', () => { map.closePopup(); });
 
@@ -429,27 +438,31 @@
         return marker;
     }
 
-    // --- FIREBASE DİNLEYİCİLERİ (Garanti Veri Akışı) ---
+    // --- FIREBASE DİNLEYİCİLERİ ---
     onChildAdded(pointsRef, (snap) => {
-        if (markers[snap.key]) return; // Zaten varsa tekrar ekleme
-        
-        // Marker'ı yarat
-        const marker = createMarker(snap.key, snap.val());
-        
-        // Listeye ekle
-        markers[snap.key] = marker;
-        
-        // Kümeye ekle
-        markersCluster.addLayer(marker); 
+        if (markers[snap.key]) return; 
+
+        try {
+            const marker = createMarker(snap.key, snap.val());
+            if(marker) {
+                markers[snap.key] = marker;
+                markersCluster.addLayer(marker); 
+            }
+        } catch (e) {
+            console.error("Marker ekleme hatası:", e);
+        }
     });
 
     onChildChanged(pointsRef, (snap) => {
         const marker = markers[snap.key];
         if (marker) {
             const d = snap.val();
+            const lat = parseFloat(d.lat);
+            const lng = parseFloat(d.lng);
+            
             const cur = marker.getLatLng();
-            if (cur.lat !== d.lat || cur.lng !== d.lng) {
-                marker.setLatLng([d.lat, d.lng]);
+            if (cur.lat !== lat || cur.lng !== lng) {
+                marker.setLatLng([lat, lng]);
             }
             if(marker.myTitle !== d.title) {
                 marker.setIcon(createNumberIcon(d.title));
@@ -481,7 +494,6 @@
         
         map.closePopup();
 
-        // Kilit durumuna göre tüm markerları güncelle
         for (let key in markers) {
             const m = markers[key];
             if(isEditMode) {
@@ -498,10 +510,9 @@
         const data = [];
         if (snapshot.exists()) {
             snapshot.forEach((child) => {
-                const key = child.key;
                 const val = child.val();
                 data.push({
-                    'ID': key,
+                    'ID': child.key,
                     'İstif No': val.title,
                     'Enlem': val.lat,
                     'Boylam': val.lng
