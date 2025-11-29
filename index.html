@@ -98,12 +98,14 @@
         #addMarkerBtn.active { background: #ef4444; }
         #lockBtn { top: 85px; background: #64748b; }
         #lockBtn.unlocked { background: #22c55e; }
-        /* EXCEL BUTONU STİLİ */
         #exportBtn { top: 150px; background: #16a34a; }
 
         /* Marker Stili */
         .pin-wrapper { position: relative; width: 50px; height: 60px; cursor: pointer; }
         
+        /* Düzenleme modu açıkken imleci değiştir */
+        .map-edit-active .leaflet-marker-icon .pin-wrapper { cursor: move !important; }
+
         .pin-marker { 
             position: absolute; width: 36px; height: 36px; background: #2563eb; 
             border-radius: 50% 50% 50% 0; left: 7px; top: 0; 
@@ -359,7 +361,7 @@
 
     function createNumberIcon(num) {
         return L.divIcon({
-            className: "custom-pin", // Class ismi güncellendi
+            className: "custom-pin",
             html: `<div class="pin-wrapper">
                     <div class="pin-marker" data-pin="${num}"></div>
                     <div class="pin-number">${num}</div>
@@ -374,22 +376,23 @@
         map.closePopup(); 
     };
 
-    // --- MARKER YÖNETİMİ (DÜZELTİLDİ) ---
+    // --- MARKER YÖNETİMİ (KESİN ÇÖZÜM) ---
     let initialLoadDone = false;
 
     function createAndSetupMarker(key, d) {
-        // Varsayılan draggable: false
-        const marker = L.marker([d.lat, d.lng], { icon: createNumberIcon(d.title), draggable: false });
+        // ÖNEMLİ: Marker'ı BAŞLANGIÇTA draggable: true olarak yaratıyoruz.
+        // Böylece Leaflet gerekli "sürükleme kancalarını" en baştan yüklüyor.
+        const marker = L.marker([d.lat, d.lng], { icon: createNumberIcon(d.title), draggable: true });
         marker.myTitle = d.title; 
         marker.firebaseKey = key;
 
-        // Edit modu açıksa, yeni eklenen veya yüklenen marker'ı sürüklenebilir yap
-        if (isEditMode) {
-            marker.options.draggable = true; // Option'ı güncelle
-            marker.dragging.enable();
+        // EĞER edit modu kapalıysa, sürüklemeyi hemen devre dışı bırakıyoruz.
+        // Bu yöntem "sonradan açılmama" sorununu çözer.
+        if (!isEditMode) {
+            marker.dragging.disable();
         }
 
-        // Sürükleme başladığında Popup varsa kapat (Çakışmayı önler)
+        // Sürükleme başladığında Popup varsa kapat
         marker.on('dragstart', () => {
             map.closePopup();
         });
@@ -402,7 +405,6 @@
 
         // TIKLAMA OLAYI
         marker.on('click', (e) => {
-            // Sürükleme işlemindeyken tıklama tetiklenmemeli, ancak Leaflet bunu genelde halleder.
             L.DomEvent.stopPropagation(e);
             
             if (!addingMarkerMode) {
@@ -479,20 +481,13 @@
         const marker = markers[snap.key];
         if (marker) {
             const d = snap.val();
-            // Eğer sürükleme işlemini yapan bizsek setLatLng yapmamalıyız yoksa titrer.
-            // Ancak basitlik adına burada bırakıyoruz, dragend zaten güncelledi.
-            // Firebase'den gelen veri ile marker konumu farklıysa (başka cihazdan geldiyse) güncelle.
             const cur = marker.getLatLng();
             if (cur.lat !== d.lat || cur.lng !== d.lng) {
                 marker.setLatLng([d.lat, d.lng]);
             }
-            
             if(marker.myTitle !== d.title) {
                 marker.setIcon(createNumberIcon(d.title));
                 marker.myTitle = d.title;
-            }
-            if(targetLatLng && targetLatLng.equals(marker.getLatLng())) { 
-                targetLatLng = marker.getLatLng(); 
             }
         }
     });
@@ -502,7 +497,6 @@
         if (marker) {
             markersCluster.removeLayer(marker); 
             delete markers[snap.key];
-            
             if (targetLatLng && targetLatLng.equals(marker.getLatLng())) {
                 document.getElementById("navPanel").style.display = "none";
                 stopTracking();
@@ -510,7 +504,30 @@
         }
     });
 
-    // --- EXCEL'E AKTAR ---
+    // --- KİLİT VE SÜRÜKLEME DÜZENLEMESİ ---
+    const lockBtn = document.getElementById('lockBtn');
+    lockBtn.addEventListener('click', () => {
+        isEditMode = !isEditMode;
+        
+        lockBtn.innerHTML = isEditMode ? svgUnlock : svgLock;
+        lockBtn.classList.toggle('unlocked', isEditMode);
+        document.getElementById('map').classList.toggle('map-edit-active', isEditMode);
+        
+        map.closePopup();
+
+        // Kilit durumuna göre tüm markerları güncelle
+        for (let key in markers) {
+            const m = markers[key];
+            // Sadece enable/disable kullanıyoruz çünkü init aşamasında zaten draggable: true yaptık.
+            if(isEditMode) {
+                m.dragging.enable();
+            } else {
+                m.dragging.disable();
+            }
+        }
+    });
+
+    // --- EXCEL İŞLEMLERİ ---
     async function getMarkerDataForExport() {
         const snapshot = await get(pointsRef);
         const data = [];
@@ -571,71 +588,7 @@
         }
     });
 
-    // --- NAVİGASYON ---
-    window.startTracking = function() {
-        if (!navigator.geolocation) { alert("Cihazınız GPS desteklemiyor."); return; }
-        document.getElementById("startNavBtn").style.display = "none";
-        document.getElementById("stopNavBtn").style.display = "flex";
-        document.getElementById("navInfo").innerText = "Konum Aranıyor...";
-
-        watchId = navigator.geolocation.watchPosition(
-            (position) => {
-                const lat = position.coords.latitude;
-                const lng = position.coords.longitude;
-                const userLatLng = L.latLng(lat, lng);
-
-                if (!userMarker) {
-                    const userIcon = L.divIcon({ className: 'user-location-dot', iconSize: [20, 20], iconAnchor: [10, 10] });
-                    userMarker = L.marker(userLatLng, {icon: userIcon}).addTo(map);
-                } else { userMarker.setLatLng(userLatLng); }
-
-                if (targetLatLng) {
-                    if (routeLine) map.removeLayer(routeLine);
-                    routeLine = L.polyline([userLatLng, targetLatLng], { color: '#2563eb', weight: 5, opacity: 0.8, dashArray: '10, 10' }).addTo(map);
-                    const dist = userLatLng.distanceTo(targetLatLng);
-                    document.getElementById("navDistance").innerText = Math.round(dist) + " metre";
-                    document.getElementById("navInfo").innerText = "Hedefe Kalan";
-                }
-            },
-            (error) => { console.error(error); alert("Konum alınamadı. Lütfen GPS izni verin."); stopTracking(); },
-            { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
-        );
-    };
-
-    window.stopTracking = function() {
-        if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
-        if (userMarker) { map.removeLayer(userMarker); userMarker = null; }
-        if (routeLine) { map.removeLayer(routeLine); routeLine = null; }
-        document.getElementById("startNavBtn").style.display = "flex";
-        document.getElementById("stopNavBtn").style.display = "none";
-        document.getElementById("navDistance").innerText = "Durdu";
-        document.getElementById("navInfo").innerText = "Takip";
-    };
-
-    // --- KİLİT VE SÜRÜKLEME DÜZENLEMESİ ---
-    const lockBtn = document.getElementById('lockBtn');
-    lockBtn.addEventListener('click', () => {
-        isEditMode = !isEditMode;
-        
-        lockBtn.innerHTML = isEditMode ? svgUnlock : svgLock;
-        lockBtn.classList.toggle('unlocked', isEditMode);
-        document.getElementById('map').classList.toggle('map-edit-active', isEditMode);
-        
-        map.closePopup();
-
-        // Kilit durumuna göre tüm markerları güncelle
-        for (let key in markers) {
-            const m = markers[key];
-            if(isEditMode) {
-                m.options.draggable = true; // Option güncelle
-                m.dragging.enable();        // Handler etkinleştir
-            } else {
-                m.options.draggable = false;
-                m.dragging.disable();
-            }
-        }
-    });
-
+    // --- DİĞER FONKSİYONLAR ---
     const searchInput = document.getElementById("searchInput");
     searchInput.addEventListener("input", () => {
         const value = searchInput.value.trim();
@@ -736,6 +689,46 @@
     });
     deleteCancelBtn.addEventListener("click", () => { deleteModal.classList.remove("show"); markerToDelete = null; });
 
+    // GPS TAKİBİ
+    window.startTracking = function() {
+        if (!navigator.geolocation) { alert("Cihazınız GPS desteklemiyor."); return; }
+        document.getElementById("startNavBtn").style.display = "none";
+        document.getElementById("stopNavBtn").style.display = "flex";
+        document.getElementById("navInfo").innerText = "Konum Aranıyor...";
+
+        watchId = navigator.geolocation.watchPosition(
+            (position) => {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                const userLatLng = L.latLng(lat, lng);
+
+                if (!userMarker) {
+                    const userIcon = L.divIcon({ className: 'user-location-dot', iconSize: [20, 20], iconAnchor: [10, 10] });
+                    userMarker = L.marker(userLatLng, {icon: userIcon}).addTo(map);
+                } else { userMarker.setLatLng(userLatLng); }
+
+                if (targetLatLng) {
+                    if (routeLine) map.removeLayer(routeLine);
+                    routeLine = L.polyline([userLatLng, targetLatLng], { color: '#2563eb', weight: 5, opacity: 0.8, dashArray: '10, 10' }).addTo(map);
+                    const dist = userLatLng.distanceTo(targetLatLng);
+                    document.getElementById("navDistance").innerText = Math.round(dist) + " metre";
+                    document.getElementById("navInfo").innerText = "Hedefe Kalan";
+                }
+            },
+            (error) => { console.error(error); alert("Konum alınamadı. Lütfen GPS izni verin."); stopTracking(); },
+            { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+        );
+    };
+
+    window.stopTracking = function() {
+        if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+        if (userMarker) { map.removeLayer(userMarker); userMarker = null; }
+        if (routeLine) { map.removeLayer(routeLine); routeLine = null; }
+        document.getElementById("startNavBtn").style.display = "flex";
+        document.getElementById("stopNavBtn").style.display = "none";
+        document.getElementById("navDistance").innerText = "Durdu";
+        document.getElementById("navInfo").innerText = "Takip";
+    };
 </script>
 </body>
 </html>
