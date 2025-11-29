@@ -324,7 +324,6 @@
             lockBtn.style.display = 'flex'; 
             exportBtn.style.display = 'flex';
         }
-        // Manuel yükleme fonksiyonunu sildim, doğrudan Firebase listener çalışacak.
     }
 
     // --- HARİTA AYARLARI ---
@@ -358,7 +357,7 @@
 
     function createNumberIcon(num) {
         return L.divIcon({
-            className: "", // Standart sınıf
+            className: "",
             html: `<div class="pin-wrapper">
                     <div class="pin-marker" data-pin="${num}"></div>
                     <div class="pin-number">${num}</div>
@@ -434,9 +433,9 @@
         return marker;
     }
 
-    // --- FIREBASE DİNLEYİCİLERİ (Garanti Yöntem) ---
+    // --- FIREBASE DİNLEYİCİLERİ ---
     onChildAdded(pointsRef, (snap) => {
-        if (markers[snap.key]) return; // Zaten varsa tekrar ekleme
+        if (markers[snap.key]) return; 
 
         const marker = createAndSetupMarker(snap.key, snap.val());
         markers[snap.key] = marker;
