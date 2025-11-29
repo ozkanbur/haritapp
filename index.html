@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Harita - v3.1 (Drag & Drop)</title>
+    <title>Depo Yönetimi - v3.2 (Tam Yetki)</title>
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
@@ -64,34 +64,32 @@
 
         /* MARKER ICON */
         .custom-div-icon { background: transparent; border: none; }
-        .pin-wrapper { position: relative; width: 50px; height: 60px; pointer-events: none; } /* Wrapper pointer-events none kalsın, marker handle edecek */
-        .pin-marker { position: absolute; width: 36px; height: 36px; background: #2563eb; border-radius: 50% 50% 50% 0; left: 7px; top: 0; border: 3px solid white; transform: rotate(-45deg); transition: background 0.3s; pointer-events: auto; /* Tıklanabilirlik için */ }
+        .pin-wrapper { position: relative; width: 50px; height: 60px; pointer-events: none; } 
+        .pin-marker { position: absolute; width: 36px; height: 36px; background: #2563eb; border-radius: 50% 50% 50% 0; left: 7px; top: 0; border: 3px solid white; transform: rotate(-45deg); transition: background 0.3s; pointer-events: auto; }
         .pin-marker::after { content: ''; position: absolute; width: 16px; height: 16px; background: white; border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); }
         .pin-number { position: absolute; top: -28px; left: 50%; transform: translateX(-50%); color: white; font-weight: bold; font-size: 14px; background: #2563eb; padding: 4px 10px; border-radius: 12px; white-space: nowrap; transition: all 0.3s; }
         
         .pin-marker.active { background: #ef4444 !important; }
         .pin-marker.active + .pin-number { background: #ef4444 !important; top: -35px; }
 
-        .popup-delete-btn { background: #ef4444; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 14px; margin: 0 auto; }
+        .popup-delete-btn { background: #ef4444; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 14px; margin: 10px auto 0 auto; }
         .marker-cluster-small, .marker-cluster-medium, .marker-cluster-large { background-color: rgba(37, 99, 235, 0.6) !important; }
         .marker-cluster div { background-color: rgba(37, 99, 235, 0.9) !important; color: white !important; font-weight: 800; }
         .leaflet-container.crosshair-cursor-enabled { cursor: crosshair; }
         .map-edit-active { border: 4px solid #ef4444; box-sizing: border-box; }
         
-        /* Dragging sırasında cursor değişimi */
         .leaflet-marker-draggable { cursor: move !important; }
 
-        /* VERSİYON BİLGİSİ */
         #versionTag { position: absolute; bottom: 5px; left: 5px; color: rgba(255,255,255,0.3); font-size: 10px; z-index: 9999; }
     </style>
 </head>
 <body>
 
-<div id="versionTag">v3.1 - Drag & Drop</div>
+<div id="versionTag">v3.2 - Drag & Drop (Admin+User)</div>
 
 <div id="loginScreen">
     <div class="login-container">
-        <div class="brand-name">Özkan KANBUR - v3.0</div>
+        <div class="brand-name">Özkan KANBUR - v3.2</div>
         <div class="brand-title">Orman Endüstri Mühendisi</div>
         <button id="btnGuest" class="login-btn btn-guest">Misafir Olarak Devam Et</button>
         <button id="btnUser" class="login-btn btn-user">Kullanıcı Girişi Yap</button>
@@ -113,9 +111,16 @@
 </div>
 
 <input type="text" id="searchInput" class="search-box" placeholder="Numara Ara..." inputmode="numeric" pattern="[0-9]*">
-<button id="addMarkerBtn" class="action-btn" title="Yeni Ekle"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
-<button id="lockBtn" class="action-btn" title="Düzenleme Kilidi" style="display:none;"><svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg></button>
-<button id="exportBtn" class="action-btn" title="Excel'e Aktar" style="display: none;"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9v-3H8v3H6V8h2v2h1V8h2v8zm5-1.5c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5-1.5.67-1.5 1.5.67 1.5 1.5 1.5zm-3-3v1.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V11c0-1.66-1.34-3-3-3s-3 1.34-3 3v3h1.5v-3c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5v1.5c0 .83-.67 1.5-1.5 1.5s-1.5-.67-1.5-1.5V11h1.5v2.5z"/></svg></button>
+
+<button id="addMarkerBtn" class="action-btn" title="Yeni Ekle">
+    <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+</button>
+<button id="lockBtn" class="action-btn" title="Düzenleme Kilidi" style="display:none;">
+    <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+</button>
+<button id="exportBtn" class="action-btn" title="Excel'e Aktar" style="display: none;">
+    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9v-3H8v3H6V8h2v2h1V8h2v8zm5-1.5c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5-1.5.67-1.5 1.5.67 1.5 1.5 1.5zm-3-3v1.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V11c0-1.66-1.34-3-3-3s-3 1.34-3 3v3h1.5v-3c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5v1.5c0 .83-.67 1.5-1.5 1.5s-1.5-.67-1.5-1.5V11h1.5v2.5z"/></svg>
+</button>
 
 <div id="addModal" class="modal">
     <div class="modal-content">
@@ -150,11 +155,7 @@
 
     // HATA GÖSTERİCİ
     window.onerror = function(msg, url, line) {
-        if (msg.includes("maxZoom")) {
-            console.warn("MaxZoom uyarısı yoksayıldı.");
-        } else {
-            // alert("HATA: " + msg + "\nSatır: " + line); // Gerekirse açılabilir
-        }
+        if (msg.includes("maxZoom")) { console.warn("MaxZoom uyarısı yoksayıldı."); } 
         return false;
     };
 
@@ -225,10 +226,14 @@
         const lockBtn = document.getElementById('lockBtn');
         const exportBtn = document.getElementById('exportBtn');
 
+        // GÜNCELLENEN KISIM: Hem USER hem ADMIN kilit butonunu görebilir
         if (userRole === 'guest') { 
             addBtn.style.display = 'none'; lockBtn.style.display = 'none'; exportBtn.style.display = 'none';
         } else { 
-            addBtn.style.display = 'flex'; lockBtn.style.display = 'flex'; exportBtn.style.display = 'flex';
+            // Hem admin hem user için butonlar açık
+            addBtn.style.display = 'flex'; 
+            lockBtn.style.display = 'flex'; 
+            exportBtn.style.display = 'flex';
         }
     }
 
@@ -237,7 +242,6 @@
     const northEast = L.latLng(41.952599, 34.764444);
     const bounds = L.latLngBounds(southWest, northEast);
     
-    // MaxZoom: 22 ayarı eklendi, zoom çubuğu kaldırıldı
     const map = L.map('map', { 
         center: bounds.getCenter(), 
         zoom: 16, 
@@ -245,15 +249,12 @@
         maxZoom: 22,
         zoomControl: false 
     });
-    
-    // Tarayıcı kaynaklı maxZoom hatasına karşı tekrar set ediyoruz
     map.options.maxZoom = 22;
 
     L.control.zoom({ position: 'bottomright' }).addTo(map);
     
     const overlay = L.imageOverlay('harita.jpg', bounds).addTo(map);
-    overlay.on('error', function() { console.log("Harita resmi bulunamadı."); });
-
+    
     map.fitBounds(bounds);
 
     const markersCluster = L.markerClusterGroup({ disableClusteringAtZoom: 19, spiderfyOnMaxZoom: true, showCoverageOnHover: false });
@@ -284,24 +285,21 @@
         });
         marker.myTitle = d.title; marker.firebaseKey = key;
 
-        // --- SÜRÜKLEME BİTİNCE ÇALIŞIR ---
+        // --- SÜRÜKLEME SONRASI KAYIT (Drag & Drop Logic) ---
         marker.on('dragend', function(e) {
-            const newPos = e.target.getLatLng();
-            // Firebase veritabanını güncelle
+            const newPos = marker.getLatLng();
             update(ref(db, "points/" + key), {
                 lat: newPos.lat,
                 lng: newPos.lng
             }).then(() => {
-                console.log("Konum güncellendi.");
+                console.log("Konum güncellendi:", d.title);
             }).catch((err) => {
                 console.error("Güncelleme hatası:", err);
-                // Hata olursa markerı eski yerine atmak mantıklı olabilir
-                // Ama şimdilik basit tutalım.
+                marker.setLatLng([d.lat, d.lng]); // Hata varsa eski yerine dön
             });
         });
 
         marker.on('click', (e) => {
-            // Sürüklerken yanlışlıkla tıklama olmasın
             if(marker.dragging && marker.dragging.enabled() && marker._isDragging) { return; }
 
             L.DomEvent.stopPropagation(e);
@@ -317,11 +315,13 @@
                 lastActiveMarker = marker; 
                 map.setView(marker.getLatLng(), 19); 
 
-                // Hem user hem admin, eğer kilit açıksa (isEditMode) silme butonunu görsün
+                // Edit modu açıksa sil butonunu göster
+                let popupContent = `<div style="text-align:center; font-weight:bold; font-size:15px;">No: ${d.title}</div>`;
                 if (isEditMode) {
-                    const btnHtml = `<button onclick="window.triggerDeleteGlobal('${key}')" class="popup-delete-btn">Sil</button>`;
-                    L.popup({ offset: [0, -40], closeButton: false }).setLatLng(marker.getLatLng()).setContent(btnHtml).openOn(map);
+                    popupContent += `<button onclick="window.triggerDeleteGlobal('${key}')" class="popup-delete-btn">Sil</button>`;
                 }
+                
+                L.popup({ offset: [0, -40], closeButton: false }).setLatLng(marker.getLatLng()).setContent(popupContent).openOn(map);
             }
         });
         return marker;
@@ -340,7 +340,6 @@
         const marker = markers[snap.key];
         if (marker) {
             const d = snap.val();
-            // setLatLng Cluster içindeki markerı da günceller
             marker.setLatLng([d.lat, d.lng]);
             marker.setIcon(createNumberIcon(d.title));
             marker.myTitle = d.title;
@@ -356,11 +355,13 @@
     addMarkerBtn.addEventListener("click", () => {
         addingMarkerMode = !addingMarkerMode;
         if (addingMarkerMode) {
-            addMarkerBtn.classList.add("active"); addMarkerBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>';
+            addMarkerBtn.classList.add("active"); 
+            addMarkerBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>';
             map.getContainer().classList.add("crosshair-cursor-enabled");
             map.closePopup();
         } else {
-            addMarkerBtn.classList.remove("active"); addMarkerBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>';
+            addMarkerBtn.classList.remove("active"); 
+            addMarkerBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>';
             map.getContainer().classList.remove("crosshair-cursor-enabled");
         }
     });
@@ -389,14 +390,24 @@
     document.getElementById("btnDeleteConfirm").addEventListener("click", () => { if (markerToDelete) { remove(ref(db, `points/${markerToDelete.key}`)); document.getElementById("deleteModal").classList.remove("show"); markerToDelete = null; } });
     document.getElementById("btnDeleteCancel").addEventListener("click", () => { document.getElementById("deleteModal").classList.remove("show"); markerToDelete = null; });
 
-    // --- KİLİT BUTONU (EDİT MODU) ---
+    // --- KİLİT BUTONU (EDİT MODU - SÜRÜKLEME AÇMA/KAPAMA) ---
     document.getElementById('lockBtn').addEventListener('click', () => {
+        // Artık yetki kontrolü yok, butonu gören herkes (User/Admin) basabilir
         isEditMode = !isEditMode;
         
-        // Görsel değişimler
-        document.getElementById('lockBtn').classList.toggle('unlocked', isEditMode);
+        const btn = document.getElementById('lockBtn');
+        btn.classList.toggle('unlocked', isEditMode);
         document.getElementById('map').classList.toggle('map-edit-active', isEditMode);
         
+        // İKON DEĞİŞİMİ
+        if (isEditMode) {
+            // Açık Kilit
+            btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 17c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6-9h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6h1.9c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm0 12H6V10h12v10z"/></svg>';
+        } else {
+            // Kapalı Kilit
+            btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>';
+        }
+
         map.closePopup();
 
         // Bütün markerları gez ve draggable özelliğini aç/kapa
