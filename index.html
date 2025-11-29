@@ -17,9 +17,9 @@
         
         #map { height: 100%; width: 100%; background-color: #444; display: none; }
 
-        /* DEBUG KONSOLU - Sorunu görmek için */
+        /* DEBUG KONSOLU - Yeşil Yazılar */
         #debugConsole {
-            position: fixed; top: 0; left: 0; width: 100%; height: 150px;
+            position: fixed; top: 0; left: 0; width: 100%; height: 120px;
             background: rgba(0,0,0,0.85); color: #0f0; font-family: monospace;
             font-size: 11px; padding: 10px; z-index: 99999;
             overflow-y: auto; pointer-events: none; border-bottom: 2px solid #0f0;
@@ -46,12 +46,7 @@
         }
         .btn-guest { background: #f1f5f9; color: #475569; }
         .btn-user { background: #2563eb; color: white; }
-        .btn-admin { background: #0f172a; color: white; }
 
-        /* Diğer Butonlar */
-        .action-btn { position: absolute; right: 20px; width: 50px; height: 50px; border-radius: 50%; border: none; cursor: pointer; z-index: 1000; display: none; align-items: center; justify-content: center; color: white; }
-        #addMarkerBtn { top: 160px; background: #2563eb; } /* Debug konsolu yüzünden aşağı aldım */
-        
         /* Marker Stili */
         .custom-div-icon { background: transparent; border: none; }
         .pin-wrapper { position: relative; width: 50px; height: 60px; }
@@ -65,15 +60,14 @@
 
 <div id="loginScreen">
     <div class="login-container">
-        <div class="brand-name">Hata Ayıklama Modu</div>
-        <p style="margin-bottom:10px; color:red; font-size:12px;">Bu modda üstte yazan yazılar önemlidir.</p>
+        <div class="brand-name">Hata Ayıklama Modu v2</div>
+        <p style="margin-bottom:10px; color:#2563eb; font-size:12px;">Map Zoom Hatası Giderildi.</p>
         <button id="btnGuest" class="login-btn btn-guest">Misafir Olarak Başla</button>
         <button id="btnUser" class="login-btn btn-user">Kullanıcı Girişi</button>
     </div>
 </div>
 
 <div id="map"></div>
-<button id="addMarkerBtn" class="action-btn"><svg viewBox="0 0 24 24" style="width:24px;height:24px;fill:white"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
@@ -82,24 +76,26 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, push, onChildAdded, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    // --- EKRANA YAZDIRMA FONKSİYONU ---
     function log(msg) {
         const d = new Date();
         const time = d.getHours() + ":" + d.getMinutes() + ":" + d.getSeconds();
         const el = document.getElementById("debugConsole");
-        el.innerHTML += `[${time}] ${msg}<br>`;
-        el.scrollTop = el.scrollHeight;
+        if(el) {
+            el.innerHTML += `[${time}] ${msg}<br>`;
+            el.scrollTop = el.scrollHeight;
+        }
         console.log(msg);
     }
 
+    // Telefonda hataları yakalamak için
     window.onerror = function(msg, url, line) {
         log("KRİTİK HATA: " + msg + " (Satır: " + line + ")");
+        return false;
     };
 
     const firebaseConfig = {
         apiKey: "AIzaSyBALVTNtwpBZEB4t8fhb7_I3nZJZzrnJU4",
         authDomain: "appharita.firebaseapp.com",
-        // Lütfen buranın doğruluğundan %100 emin olun
         databaseURL: "https://appharita-default-rtdb.firebaseio.com", 
         projectId: "appharita",
         storageBucket: "appharita.firebasestorage.app",
@@ -110,32 +106,36 @@
 
     let app, db, pointsRef;
 
-    // 1. Firebase Başlatma
     try {
         log("Firebase config yükleniyor...");
         app = initializeApp(firebaseConfig);
         db = getDatabase(app);
         pointsRef = ref(db, "points");
-        log("Firebase SDK yüklendi. Referans: points");
+        log("Firebase Hazır. Hedef: points");
     } catch (e) {
         log("FIREBASE BAŞLATILAMADI: " + e.message);
     }
 
-    // 2. Harita Hazırlığı
+    // --- HARİTA AYARLARI (DÜZELTİLEN KISIM) ---
     const southWest = L.latLng(41.947443, 34.756365);
     const northEast = L.latLng(41.952599, 34.764444);
     const bounds = L.latLngBounds(southWest, northEast);
-    const map = L.map('map', { center: bounds.getCenter(), zoom: 16, zoomControl: false });
+    
+    // BURASI ÇOK ÖNEMLİ: maxZoom: 22 eklendi. Hatayı bu çözecek.
+    const map = L.map('map', { 
+        center: bounds.getCenter(), 
+        zoom: 16, 
+        maxZoom: 22, // <-- İŞTE ÇÖZÜM BU SATIRDA
+        zoomControl: false 
+    });
+    
     L.control.zoom({ position: 'bottomright' }).addTo(map);
     L.imageOverlay('harita.jpg', bounds).addTo(map);
+    map.fitBounds(bounds);
+
     const markersCluster = L.markerClusterGroup();
     map.addLayer(markersCluster);
 
-    // Test Marker'ı (Firebase'den bağımsız çalışıp çalışmadığını görmek için)
-    const testMarker = L.marker(bounds.getCenter()).addTo(map);
-    testMarker.bindPopup("Bu bir TEST markerıdır. Harita çalışıyor.");
-    
-    // --- Marker Oluşturma ---
     function createNumberIcon(num) {
         return L.divIcon({
             className: "custom-div-icon",
@@ -148,59 +148,48 @@
     log("Veri dinleyicisi kuruluyor...");
     
     onChildAdded(pointsRef, (snap) => {
-        log("Veri Geldi! ID: " + snap.key);
         const d = snap.val();
+        // Hata ayıklama için her veriyi yazmıyoruz, çok yer kaplar
+        // Sadece ilk gelen veriyi kontrol edelim
         
-        // Veri içeriğini kontrol et
-        if (!d) { log("HATA: Veri boş!"); return; }
-        if (d.lat === undefined || d.lng === undefined) {
-            log("HATA: lat/lng eksik! Gelen veri: " + JSON.stringify(d));
-            return;
-        }
-
-        try {
-            const marker = L.marker([d.lat, d.lng], { icon: createNumberIcon(d.title || "?") });
-            markersCluster.addLayer(marker);
-            log("Marker eklendi: " + d.title);
-        } catch(err) {
-            log("Marker çizim hatası: " + err.message);
+        if (d && d.lat && d.lng) {
+            try {
+                const marker = L.marker([d.lat, d.lng], { icon: createNumberIcon(d.title || "?") });
+                markersCluster.addLayer(marker);
+                // Başarılı olursa log düşmeyelim, ekran dolmasın.
+            } catch(err) {
+                log("Marker çizim hatası: " + err.message);
+            }
         }
     });
 
-    // --- Başlangıç Testi ---
+    // --- Bağlantı Özeti ---
     get(pointsRef).then(snapshot => {
         if(snapshot.exists()) {
-            log("BAĞLANTI BAŞARILI: Veritabanında veri var.");
-            log("Toplam kayıt sayısı (tahmini): " + snapshot.size);
+            const count = snapshot.size; // Toplam veri sayısı
+            log("BAĞLANTI BAŞARILI! Toplam " + count + " adet istif bulundu.");
+            log("Harita üzerinde görünmesi lazım.");
         } else {
-            log("UYARI: Bağlantı var ama 'points' klasörü BOŞ.");
+            log("UYARI: Bağlantı var ama hiç veri yok (Klasör boş).");
         }
     }).catch(error => {
-        log("BAĞLANTI HATASI (Get): " + error.code + " - " + error.message);
+        log("BAĞLANTI HATASI: " + error.code);
+        log("Detay: " + error.message);
     });
 
-    // --- Arayüz İşlemleri ---
+    // --- Arayüz ---
     function initAppLayout() {
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('map').style.display = 'block';
-        document.getElementById('addMarkerBtn').style.display = 'flex';
         
         setTimeout(() => {
             map.invalidateSize();
             map.fitBounds(bounds);
-            log("Harita boyutu güncellendi ve odaklandı.");
         }, 500);
     }
 
-    document.getElementById('btnGuest').addEventListener('click', () => {
-        log("Misafir butonuna basıldı.");
-        initAppLayout();
-    });
-
-    document.getElementById('btnUser').addEventListener('click', () => {
-        log("Kullanıcı butonuna basıldı. (Şifresiz geçiş yapılıyor test için)");
-        initAppLayout();
-    });
+    document.getElementById('btnGuest').addEventListener('click', () => initAppLayout());
+    document.getElementById('btnUser').addEventListener('click', () => initAppLayout());
 
 </script>
 </body>
