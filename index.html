@@ -103,6 +103,7 @@
         /* Marker Stili */
         .pin-wrapper { position: relative; width: 50px; height: 60px; cursor: pointer; }
         
+        /* Düzenleme modu açıkken imleci değiştir */
         .map-edit-active .leaflet-marker-icon .pin-wrapper { cursor: move !important; }
 
         .pin-marker { 
@@ -155,6 +156,7 @@
         .leaflet-container.crosshair-cursor-enabled { cursor: crosshair; }
         .leaflet-marker-icon.active-zindex { z-index: 1000000 !important; }
 
+        /* KÜMELEME STİLİ */
         .marker-cluster-small, .marker-cluster-medium, .marker-cluster-large {
             background-color: rgba(37, 99, 235, 0.6) !important;
         }
@@ -374,13 +376,14 @@
 
     // --- MARKER OLUŞTURMA VE AYARLAMA ---
     function createAndSetupMarker(key, d) {
-        // Draggable: true yapıyoruz (motor çalışıyor)
+        // DRAGGABLE ÇÖZÜMÜ BURADA:
+        // Marker'ı draggable: true ile yaratıyoruz ama hemen disable ediyoruz.
+        // Bu sayede özellik yükleniyor ama kilit açılana kadar kapalı kalıyor.
         const marker = L.marker([d.lat, d.lng], { icon: createNumberIcon(d.title), draggable: true });
         marker.myTitle = d.title; 
         marker.firebaseKey = key;
 
-        // Hemen ardından disable ediyoruz (fren çekili)
-        marker.dragging.disable();
+        marker.dragging.disable(); // Varsayılan olarak kapalı başlat
 
         marker.on('dragstart', () => { map.closePopup(); });
 
@@ -434,6 +437,7 @@
     }
 
     // --- FIREBASE DİNLEYİCİLERİ ---
+    // En garantili yöntem budur, optimizasyon yok, doğrudan dinleme var.
     onChildAdded(pointsRef, (snap) => {
         if (markers[snap.key]) return; 
 
