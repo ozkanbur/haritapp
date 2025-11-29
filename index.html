@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Harita - Admin Paneli</title>
+    <title>Harita - Debug Modu</title>
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
@@ -16,6 +16,15 @@
         html, body { height: 100%; overflow: hidden; background: #222; font-family: 'Montserrat', sans-serif; }
         
         #map { height: 100%; width: 100%; background-color: #444; display: none; }
+
+        /* DEBUG KONSOLU - Sorunu görmek için */
+        #debugConsole {
+            position: fixed; top: 0; left: 0; width: 100%; height: 150px;
+            background: rgba(0,0,0,0.85); color: #0f0; font-family: monospace;
+            font-size: 11px; padding: 10px; z-index: 99999;
+            overflow-y: auto; pointer-events: none; border-bottom: 2px solid #0f0;
+            display: block;
+        }
 
         /* --- UI STİLLERİ --- */
         #loginScreen {
@@ -30,127 +39,67 @@
             text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
         }
         .brand-name { font-size: 26px; font-weight: 800; color: #1e293b; margin-bottom: 5px; text-transform: uppercase; }
-        .brand-title { font-size: 14px; font-weight: 600; color: #64748b; margin-bottom: 15px; text-transform: uppercase; }
-
         .login-btn {
             display: block; width: 100%; padding: 16px; margin-bottom: 12px;
             border: none; border-radius: 12px; font-size: 15px; font-weight: bold;
-            cursor: pointer; transition: all 0.2s ease;
+            cursor: pointer;
         }
         .btn-guest { background: #f1f5f9; color: #475569; }
         .btn-user { background: #2563eb; color: white; }
         .btn-admin { background: #0f172a; color: white; }
 
-        /* MODALLAR */
-        #authModal, .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(3px); z-index: 6000; align-items: center; justify-content: center; }
-        .modal.show { display: flex; }
-        .auth-box, .modal-content { background: white; padding: 30px; border-radius: 16px; width: 90%; max-width: 350px; }
-        .auth-input, .modal-content input { width: 100%; padding: 14px; margin-bottom: 15px; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 16px; outline: none; }
-        .modal-buttons { display: flex; gap: 10px; }
-        .btn-save { background: #2563eb; color: white; flex: 1; padding: 12px; border:none; border-radius:8px; font-weight:bold; cursor:pointer;}
-        .btn-cancel { background: #e5e7eb; color: #374151; flex: 1; padding: 12px; border:none; border-radius:8px; font-weight:bold; cursor:pointer;}
-        .error-msg { color: #ef4444; font-size: 14px; margin-bottom: 15px; display: none; text-align: center; font-weight: 600; }
-        .btn-delete { background: #ef4444; color: white; flex: 1; padding: 12px; border:none; border-radius:8px; font-weight:bold; cursor:pointer;}
-
-        /* BUTONLAR */
-        .search-box { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); width: 200px; padding: 12px; z-index: 1000; border-radius: 24px; border: 2px solid #2563eb; display: none; text-align: center; }
-        .action-btn { position: absolute; right: 20px; width: 50px; height: 50px; border-radius: 50%; border: none; cursor: pointer; z-index: 1000; box-shadow: 0px 4px 12px rgba(0,0,0,0.3); display: none; align-items: center; justify-content: center; padding: 0; color: white; transition: all 0.3s ease; }
-        .action-btn svg { width: 24px; height: 24px; fill: currentColor; pointer-events: none; }
-        #addMarkerBtn { top: 20px; background: #2563eb; }
-        #addMarkerBtn.active { background: #ef4444; }
-        #lockBtn { top: 85px; background: #64748b; }
-        #lockBtn.unlocked { background: #ef4444; }
-        #exportBtn { top: 150px; background: #16a34a; }
-
-        /* MARKER ICON */
-        .custom-div-icon { background: transparent; border: none; }
-        .pin-wrapper { position: relative; width: 50px; height: 60px; pointer-events: none; }
-        .pin-marker { position: absolute; width: 36px; height: 36px; background: #2563eb; border-radius: 50% 50% 50% 0; left: 7px; top: 0; border: 3px solid white; transform: rotate(-45deg); transition: background 0.3s; }
-        .pin-marker::after { content: ''; position: absolute; width: 16px; height: 16px; background: white; border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); }
-        .pin-number { position: absolute; top: -28px; left: 50%; transform: translateX(-50%); color: white; font-weight: bold; font-size: 14px; background: #2563eb; padding: 4px 10px; border-radius: 12px; white-space: nowrap; transition: all 0.3s; }
+        /* Diğer Butonlar */
+        .action-btn { position: absolute; right: 20px; width: 50px; height: 50px; border-radius: 50%; border: none; cursor: pointer; z-index: 1000; display: none; align-items: center; justify-content: center; color: white; }
+        #addMarkerBtn { top: 160px; background: #2563eb; } /* Debug konsolu yüzünden aşağı aldım */
         
-        .pin-marker.active { background: #ef4444 !important; }
-        .pin-marker.active + .pin-number { background: #ef4444 !important; top: -35px; }
-
-        .popup-delete-btn { background: #ef4444; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 14px; margin: 0 auto; }
-        .marker-cluster-small, .marker-cluster-medium, .marker-cluster-large { background-color: rgba(37, 99, 235, 0.6) !important; }
-        .marker-cluster div { background-color: rgba(37, 99, 235, 0.9) !important; color: white !important; font-weight: 800; }
-        .leaflet-container.crosshair-cursor-enabled { cursor: crosshair; }
-        .map-edit-active { border: 4px solid #ef4444; box-sizing: border-box; }
+        /* Marker Stili */
+        .custom-div-icon { background: transparent; border: none; }
+        .pin-wrapper { position: relative; width: 50px; height: 60px; }
+        .pin-marker { position: absolute; width: 36px; height: 36px; background: #2563eb; border-radius: 50% 50% 50% 0; left: 7px; top: 0; border: 3px solid white; transform: rotate(-45deg); }
+        .pin-number { position: absolute; top: -28px; left: 50%; transform: translateX(-50%); color: white; font-weight: bold; font-size: 14px; background: #2563eb; padding: 4px 10px; border-radius: 12px; }
     </style>
 </head>
 <body>
 
+<div id="debugConsole">Sistem başlatılıyor...<br></div>
+
 <div id="loginScreen">
     <div class="login-container">
-        <div class="brand-name">Özkan KANBUR</div>
-        <div class="brand-title">Orman Endüstri Mühendisi</div>
-        <button id="btnGuest" class="login-btn btn-guest">Misafir Olarak Devam Et</button>
-        <button id="btnUser" class="login-btn btn-user">Kullanıcı Girişi Yap</button>
-        <button id="btnAdmin" class="login-btn btn-admin">Yönetici Girişi Yap</button>
-    </div>
-</div>
-
-<div id="authModal">
-    <div class="auth-box">
-        <h2 id="authTitle">Giriş Yap</h2>
-        <input type="text" id="authUsername" class="auth-input" placeholder="Kullanıcı Adı" autocapitalize="none">
-        <input type="password" id="authPassword" class="auth-input" placeholder="Şifre">
-        <div id="authError" class="error-msg">Hatalı kullanıcı adı veya şifre!</div>
-        <div class="modal-buttons">
-            <button id="btnAuthCancel" class="btn-cancel">İptal</button>
-            <button id="btnAuthLogin" class="btn-save">Giriş</button>
-        </div>
-    </div>
-</div>
-
-<input type="text" id="searchInput" class="search-box" placeholder="Numara Ara..." inputmode="numeric" pattern="[0-9]*">
-<button id="addMarkerBtn" class="action-btn" title="Yeni Ekle"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
-<button id="lockBtn" class="action-btn" title="Düzenleme Kilidi" style="display:none;"><svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg></button>
-<button id="exportBtn" class="action-btn" title="Excel'e Aktar" style="display: none;"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9v-3H8v3H6V8h2v2h1V8h2v8zm5-1.5c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5-1.5.67-1.5 1.5.67 1.5 1.5 1.5zm-3-3v1.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V11c0-1.66-1.34-3-3-3s-3 1.34-3 3v3h1.5v-3c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5v1.5c0 .83-.67 1.5-1.5 1.5s-1.5-.67-1.5-1.5V11h1.5v2.5z"/></svg></button>
-
-<div id="addModal" class="modal">
-    <div class="modal-content">
-        <h2 style="color: #2563eb; margin-bottom:20px;">İstif Numarası</h2>
-        <input type="text" id="markerNumber" placeholder="Numara girin..." autocomplete="off" inputmode="numeric" pattern="[0-9]*">
-        <div class="modal-buttons">
-            <button class="btn-cancel" id="btnAddCancel">İptal</button>
-            <button class="btn-save" id="btnAddSave">Kaydet</button>
-        </div>
-    </div>
-</div>
-
-<div id="deleteModal" class="modal">
-    <div class="modal-content">
-        <h2 style="color: #ef4444; margin-bottom:20px;">İstif Sil</h2>
-        <p style="margin-bottom: 20px; color: #374151;">Bu istifi silmek istediğinize emin misiniz?</p>
-        <div class="modal-buttons">
-            <button class="btn-cancel" id="btnDeleteCancel">İptal</button>
-            <button class="btn-delete" id="btnDeleteConfirm">Sil</button>
-        </div>
+        <div class="brand-name">Hata Ayıklama Modu</div>
+        <p style="margin-bottom:10px; color:red; font-size:12px;">Bu modda üstte yazan yazılar önemlidir.</p>
+        <button id="btnGuest" class="login-btn btn-guest">Misafir Olarak Başla</button>
+        <button id="btnUser" class="login-btn btn-user">Kullanıcı Girişi</button>
     </div>
 </div>
 
 <div id="map"></div>
+<button id="addMarkerBtn" class="action-btn"><svg viewBox="0 0 24 24" style="width:24px;height:24px;fill:white"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, push, onChildAdded, onChildChanged, onChildRemoved, remove, update, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getDatabase, ref, push, onChildAdded, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    // --- HATA YAKALAYICI (Telefonda sorunu görmek için) ---
+    // --- EKRANA YAZDIRMA FONKSİYONU ---
+    function log(msg) {
+        const d = new Date();
+        const time = d.getHours() + ":" + d.getMinutes() + ":" + d.getSeconds();
+        const el = document.getElementById("debugConsole");
+        el.innerHTML += `[${time}] ${msg}<br>`;
+        el.scrollTop = el.scrollHeight;
+        console.log(msg);
+    }
+
     window.onerror = function(msg, url, line) {
-        alert("SİSTEM HATASI:\n" + msg + "\nSatır: " + line);
-        return false;
+        log("KRİTİK HATA: " + msg + " (Satır: " + line + ")");
     };
 
-    // --- FIREBASE AYARLARI ---
     const firebaseConfig = {
         apiKey: "AIzaSyBALVTNtwpBZEB4t8fhb7_I3nZJZzrnJU4",
         authDomain: "appharita.firebaseapp.com",
-        // ÖNEMLİ: Eğer veriler gelmezse, Firebase konsolundaki Realtime Database sekmesindeki URL ile burayı değiştirin.
+        // Lütfen buranın doğruluğundan %100 emin olun
         databaseURL: "https://appharita-default-rtdb.firebaseio.com", 
         projectId: "appharita",
         storageBucket: "appharita.firebasestorage.app",
@@ -161,293 +110,98 @@
 
     let app, db, pointsRef;
 
+    // 1. Firebase Başlatma
     try {
+        log("Firebase config yükleniyor...");
         app = initializeApp(firebaseConfig);
         db = getDatabase(app);
-        // Veritabanında klasör adı küçük harfle "points" olduğu için burayı sabitliyorum.
-        pointsRef = ref(db, "points"); 
-        
+        pointsRef = ref(db, "points");
+        log("Firebase SDK yüklendi. Referans: points");
     } catch (e) {
-        alert("Firebase Başlatılamadı: " + e.message);
+        log("FIREBASE BAŞLATILAMADI: " + e.message);
     }
 
-    // --- BAĞLANTI TESTİ ---
-    // Sayfa açılınca veritabanına ulaşıp ulaşamadığını test edip size bilgi verecek.
-    get(pointsRef).then((snapshot) => {
-        if (snapshot.exists()) {
-            console.log("Veriler başarıyla bulundu.");
-            // İsterseniz aşağıdaki alert'i kaldırabilirsiniz, test amaçlı koydum.
-            // alert("BAĞLANTI BAŞARILI! Veriler yükleniyor...");
-        } else {
-            alert("UYARI: Veritabanına bağlanıldı ancak 'points' klasörü boş görünüyor veya bulunamadı.");
-        }
-    }).catch((error) => {
-        alert("VERİ ÇEKİLEMEDİ! Lütfen databaseURL'yi kontrol edin.\nHata Mesajı: " + error.message);
-    });
-
-    let userRole = null;
-    let targetRole = null;
-    let isEditMode = false;
-    let lastActiveMarker = null;
-    const markers = {};
-    let addingMarkerMode = false;
-    let tempLatLng = null;
-    let markerToDelete = null;
-
-    // --- BUTON İŞLEMLERİ ---
-    
-    // Giriş Butonları
-    document.getElementById('btnGuest').addEventListener('click', () => {
-        userRole = 'guest';
-        initAppLayout();
-    });
-
-    document.getElementById('btnUser').addEventListener('click', () => {
-        openAuthModal('user');
-    });
-
-    document.getElementById('btnAdmin').addEventListener('click', () => {
-        openAuthModal('admin');
-    });
-
-    // Modal Butonları
-    document.getElementById('btnAuthCancel').addEventListener('click', () => {
-        document.getElementById('authModal').style.display = 'none';
-    });
-
-    document.getElementById('btnAuthLogin').addEventListener('click', attemptLogin);
-
-    function openAuthModal(role) {
-        targetRole = role;
-        document.getElementById('authModal').style.display = 'flex';
-        document.getElementById('authTitle').innerText = role === 'admin' ? 'Yönetici Girişi' : 'Kullanıcı Girişi';
-        document.getElementById('authError').style.display = 'none';
-        document.getElementById('authUsername').value = '';
-        document.getElementById('authPassword').value = '';
-        document.getElementById('authUsername').focus();
-    }
-
-    function attemptLogin() {
-        const u = document.getElementById('authUsername').value.trim();
-        const p = document.getElementById('authPassword').value.trim();
-        if (targetRole === 'user' && u === 'depo' && p === '1234') { 
-            userRole = 'user'; 
-            initAppLayout(); 
-        } else if (targetRole === 'admin' && u === 'admin' && p === '1940') { 
-            userRole = 'admin'; 
-            initAppLayout(); 
-        } else { 
-            document.getElementById('authError').style.display = 'block'; 
-        }
-    }
-
-    function initAppLayout() {
-        // Giriş ekranını kapat
-        document.getElementById('loginScreen').style.display = 'none';
-        document.getElementById('authModal').style.display = 'none';
-        
-        // Haritayı aç
-        const mapEl = document.getElementById('map');
-        mapEl.style.display = 'block';
-        document.getElementById('searchInput').style.display = 'block';
-        
-        // Harita boyutunu düzelt
-        setTimeout(() => {
-            map.invalidateSize();
-            map.fitBounds(bounds);
-        }, 300);
-
-        // Butonları role göre ayarla
-        const addBtn = document.getElementById('addMarkerBtn');
-        const lockBtn = document.getElementById('lockBtn');
-        const exportBtn = document.getElementById('exportBtn');
-
-        if (userRole === 'guest') { 
-            addBtn.style.display = 'none'; lockBtn.style.display = 'none'; exportBtn.style.display = 'none';
-        } else { 
-            addBtn.style.display = 'flex'; 
-            lockBtn.style.display = 'flex'; 
-            exportBtn.style.display = 'flex';
-        }
-    }
-
-    // --- HARİTA AYARLARI ---
+    // 2. Harita Hazırlığı
     const southWest = L.latLng(41.947443, 34.756365);
     const northEast = L.latLng(41.952599, 34.764444);
     const bounds = L.latLngBounds(southWest, northEast);
     const map = L.map('map', { center: bounds.getCenter(), zoom: 16, zoomControl: false });
     L.control.zoom({ position: 'bottomright' }).addTo(map);
-    
-    // Resim yüklenemese bile çalışsın
-    const overlay = L.imageOverlay('harita.jpg', bounds).addTo(map);
-    overlay.on('error', function() { console.log("Harita resmi bulunamadı."); });
-
-    map.fitBounds(bounds);
-
-    const markersCluster = L.markerClusterGroup({ disableClusteringAtZoom: 19, spiderfyOnMaxZoom: true, showCoverageOnHover: false });
+    L.imageOverlay('harita.jpg', bounds).addTo(map);
+    const markersCluster = L.markerClusterGroup();
     map.addLayer(markersCluster);
 
-    // --- MARKER İŞLEMLERİ ---
+    // Test Marker'ı (Firebase'den bağımsız çalışıp çalışmadığını görmek için)
+    const testMarker = L.marker(bounds.getCenter()).addTo(map);
+    testMarker.bindPopup("Bu bir TEST markerıdır. Harita çalışıyor.");
+    
+    // --- Marker Oluşturma ---
     function createNumberIcon(num) {
         return L.divIcon({
             className: "custom-div-icon",
-            html: `<div class="pin-wrapper">
-                    <div class="pin-marker" data-pin="${num}"></div>
-                    <div class="pin-number">${num}</div>
-                   </div>`,
+            html: `<div class="pin-wrapper"><div class="pin-marker"></div><div class="pin-number">${num}</div></div>`,
             iconSize: [50, 60], iconAnchor: [25, 60]
         });
     }
 
-    window.triggerDeleteGlobal = function(key) {
-        markerToDelete = { key: key, marker: markers[key] };
-        document.getElementById("deleteModal").classList.add("show");
-        map.closePopup();
-    };
+    // --- Firebase Veri Okuma ---
+    log("Veri dinleyicisi kuruluyor...");
+    
+    onChildAdded(pointsRef, (snap) => {
+        log("Veri Geldi! ID: " + snap.key);
+        const d = snap.val();
+        
+        // Veri içeriğini kontrol et
+        if (!d) { log("HATA: Veri boş!"); return; }
+        if (d.lat === undefined || d.lng === undefined) {
+            log("HATA: lat/lng eksik! Gelen veri: " + JSON.stringify(d));
+            return;
+        }
 
-    function createMarker(key, d) {
-        // Hata önleyici: Eğer koordinat yoksa marker oluşturma
-        if (!d.lat || !d.lng) return null;
+        try {
+            const marker = L.marker([d.lat, d.lng], { icon: createNumberIcon(d.title || "?") });
+            markersCluster.addLayer(marker);
+            log("Marker eklendi: " + d.title);
+        } catch(err) {
+            log("Marker çizim hatası: " + err.message);
+        }
+    });
 
-        const marker = L.marker([d.lat, d.lng], { icon: createNumberIcon(d.title || "?"), draggable: false });
-        marker.myTitle = d.title; 
-        marker.firebaseKey = key;
+    // --- Başlangıç Testi ---
+    get(pointsRef).then(snapshot => {
+        if(snapshot.exists()) {
+            log("BAĞLANTI BAŞARILI: Veritabanında veri var.");
+            log("Toplam kayıt sayısı (tahmini): " + snapshot.size);
+        } else {
+            log("UYARI: Bağlantı var ama 'points' klasörü BOŞ.");
+        }
+    }).catch(error => {
+        log("BAĞLANTI HATASI (Get): " + error.code + " - " + error.message);
+    });
 
-        marker.on('click', (e) => {
-            L.DomEvent.stopPropagation(e);
-            if (!addingMarkerMode) {
-                if (lastActiveMarker) {
-                    lastActiveMarker.setZIndexOffset(0);
-                    const el = lastActiveMarker.getElement();
-                    if(el) {
-                        el.querySelector('.pin-marker')?.classList.remove('active');
-                        el.querySelector('.pin-number')?.classList.remove('active');
-                    }
-                }
-                marker.setZIndexOffset(1000000);
-                const el = marker.getElement();
-                if(el) {
-                    el.querySelector('.pin-marker')?.classList.add('active');
-                    el.querySelector('.pin-number')?.classList.add('active');
-                }
-                lastActiveMarker = marker; 
-                map.setView(marker.getLatLng(), 19); 
-
-                if (userRole === 'admin' && isEditMode) {
-                    const btnHtml = `<button onclick="window.triggerDeleteGlobal('${key}')" class="popup-delete-btn">Sil</button>`;
-                    L.popup({ offset: [0, -40], closeButton: false }).setLatLng(marker.getLatLng()).setContent(btnHtml).openOn(map);
-                }
-            }
-        });
-        return marker;
+    // --- Arayüz İşlemleri ---
+    function initAppLayout() {
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('map').style.display = 'block';
+        document.getElementById('addMarkerBtn').style.display = 'flex';
+        
+        setTimeout(() => {
+            map.invalidateSize();
+            map.fitBounds(bounds);
+            log("Harita boyutu güncellendi ve odaklandı.");
+        }, 500);
     }
 
-    // --- FIREBASE DİNLEME ---
-    onChildAdded(pointsRef, (snap) => {
-        if (markers[snap.key]) return; 
-        const marker = createMarker(snap.key, snap.val());
-        if (marker) {
-            markers[snap.key] = marker;
-            markersCluster.addLayer(marker); 
-        }
+    document.getElementById('btnGuest').addEventListener('click', () => {
+        log("Misafir butonuna basıldı.");
+        initAppLayout();
     });
 
-    onChildChanged(pointsRef, (snap) => {
-        const marker = markers[snap.key];
-        if (marker) {
-            const d = snap.val();
-            marker.setLatLng([d.lat, d.lng]);
-            marker.setIcon(createNumberIcon(d.title));
-            marker.myTitle = d.title;
-        }
+    document.getElementById('btnUser').addEventListener('click', () => {
+        log("Kullanıcı butonuna basıldı. (Şifresiz geçiş yapılıyor test için)");
+        initAppLayout();
     });
 
-    onChildRemoved(pointsRef, (snap) => {
-        const marker = markers[snap.key];
-        if (marker) {
-            markersCluster.removeLayer(marker); 
-            delete markers[snap.key];
-        }
-    });
-
-    // --- DİĞER BUTON DİNLEYİCİLERİ ---
-    const addMarkerBtn = document.getElementById("addMarkerBtn");
-    addMarkerBtn.addEventListener("click", () => {
-        addingMarkerMode = !addingMarkerMode;
-        if (addingMarkerMode) {
-            addMarkerBtn.classList.add("active"); addMarkerBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>';
-            map.getContainer().classList.add("crosshair-cursor-enabled");
-            map.closePopup();
-        } else {
-            addMarkerBtn.classList.remove("active"); addMarkerBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>';
-            map.getContainer().classList.remove("crosshair-cursor-enabled");
-        }
-    });
-
-    map.on("click", (e) => {
-        if (addingMarkerMode) {
-            tempLatLng = e.latlng;
-            document.getElementById("addModal").classList.add("show");
-            document.getElementById("markerNumber").value = "";
-            document.getElementById("markerNumber").focus();
-        }
-    });
-
-    document.getElementById("btnAddSave").addEventListener("click", () => {
-        const val = document.getElementById("markerNumber").value.trim();
-        if (val && tempLatLng) {
-            push(pointsRef, { lat: tempLatLng.lat, lng: tempLatLng.lng, title: val });
-            document.getElementById("addModal").classList.remove("show");
-            tempLatLng = null; addingMarkerMode = false;
-            addMarkerBtn.classList.remove("active"); 
-            addMarkerBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>';
-            map.getContainer().classList.remove("crosshair-cursor-enabled");
-        }
-    });
-    document.getElementById("btnAddCancel").addEventListener("click", () => { 
-        document.getElementById("addModal").classList.remove("show"); tempLatLng = null; 
-    });
-
-    document.getElementById("btnDeleteConfirm").addEventListener("click", () => {
-        if (markerToDelete) {
-            remove(ref(db, `points/${markerToDelete.key}`));
-            document.getElementById("deleteModal").classList.remove("show");
-            markerToDelete = null;
-        }
-    });
-    document.getElementById("btnDeleteCancel").addEventListener("click", () => { 
-        document.getElementById("deleteModal").classList.remove("show"); markerToDelete = null; 
-    });
-
-    document.getElementById('lockBtn').addEventListener('click', () => {
-        isEditMode = !isEditMode;
-        const btn = document.getElementById('lockBtn');
-        btn.classList.toggle('unlocked', isEditMode);
-        document.getElementById('map').classList.toggle('map-edit-active', isEditMode);
-        map.closePopup();
-    });
-
-    document.getElementById("searchInput").addEventListener("input", (e) => {
-        const val = e.target.value.trim();
-        if(val === "") return;
-        for (let key in markers) {
-            if (markers[key].myTitle == val) {
-                markersCluster.zoomToShowLayer(markers[key], function() { markers[key].fire('click'); });
-                break;
-            }
-        }
-    });
-
-    document.getElementById('exportBtn').addEventListener('click', async () => {
-        const snap = await get(pointsRef);
-        let csv = "ID;No;Lat;Lng\n";
-        snap.forEach(c => { const v=c.val(); csv+=`${c.key};${v.title};${v.lat};${v.lng}\n`; });
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = `Data.csv`;
-        link.click();
-    });
 </script>
 </body>
 </html>
