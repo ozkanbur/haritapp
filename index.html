@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Depo Navigasyon - v4.1 (Bounce Animasyonu)</title>
+    <title>Depo Navigasyon - v4.2 (Silme Düzeltildi)</title>
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
@@ -72,7 +72,7 @@
         .pin-marker.active { background: #ef4444 !important; }
         .pin-marker.active + .pin-number { background: #ef4444 !important; top: -35px; }
         
-        /* --- YENİ EKLENEN BOUNCE ANIMASYONU --- */
+        /* BOUNCE ANIMASYONU */
         @keyframes bounceAction {
             0%, 100% { transform: translateY(0); }
             50% { transform: translateY(-15px); }
@@ -89,7 +89,7 @@
 
         /* --- NAVİGASYON PANELİ --- */
         #bottomNavPanel {
-            position: fixed; bottom: -200px; left: 0; width: 100%;
+            position: fixed; bottom: -300px; left: 0; width: 100%;
             background: white; z-index: 2000;
             border-top-left-radius: 20px; border-top-right-radius: 20px;
             box-shadow: 0 -5px 20px rgba(0,0,0,0.2);
@@ -109,9 +109,16 @@
             width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px;
         }
         .btn-stop-nav {
-            background: #ef4444; color: white; border: none; padding: 15px;
+            background: #f59e0b; color: white; border: none; padding: 15px;
             border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer;
             width: 100%; display: none; 
+        }
+        
+        /* YENİ EKLENEN PANEL İÇİ SİL BUTONU */
+        .btn-delete-nav {
+            background: #ef4444; color: white; border: none; padding: 15px;
+            border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer;
+            width: 100%; display: none; /* Başlangıçta gizli */
         }
         
         .user-location-marker {
@@ -131,11 +138,11 @@
 </head>
 <body>
 
-<div id="versionTag">v4.1 - Bounce Animasyonu</div>
+<div id="versionTag">v4.2 - Silme Düzeltildi</div>
 
 <div id="loginScreen">
     <div class="login-container">
-        <div class="brand-name">Özkan KANBUR - v4.1</div>
+        <div class="brand-name">Özkan KANBUR - v4.2</div>
         <div class="brand-title">Orman Endüstri Mühendisi</div>
         <button id="btnGuest" class="login-btn btn-guest">Misafir Olarak Devam Et</button>
         <button id="btnUser" class="login-btn btn-user">Kullanıcı Girişi Yap</button>
@@ -176,11 +183,14 @@
         </div>
         <div id="navDistance" class="nav-distance">-- m</div>
     </div>
+    
     <button id="btnStartNav" class="btn-start-nav">
         <svg style="width:24px;height:24px;fill:white" viewBox="0 0 24 24"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg>
         İstife Git (Başlat)
     </button>
     <button id="btnStopNav" class="btn-stop-nav">Navigasyonu Bitir</button>
+    
+    <button id="btnPanelDelete" class="btn-delete-nav">Bu İstifi Sil</button>
 </div>
 
 <div id="addModal" class="modal">
@@ -344,22 +354,20 @@
             L.DomEvent.stopPropagation(e);
             
             if (!addingMarkerMode) {
-                // Önceki aktif markerı temizle
                 if (lastActiveMarker) {
                     const el = lastActiveMarker.getElement();
                     if(el) { 
                         el.querySelector('.pin-marker')?.classList.remove('active'); 
                         el.querySelector('.pin-number')?.classList.remove('active'); 
-                        el.querySelector('.pin-wrapper')?.classList.remove('bounce-anim'); // Animasyonu durdur
+                        el.querySelector('.pin-wrapper')?.classList.remove('bounce-anim'); 
                     }
                 }
                 
-                // Yeni markerı aktif yap ve animasyon ekle
                 const el = marker.getElement();
                 if(el) { 
                     el.querySelector('.pin-marker')?.classList.add('active'); 
                     el.querySelector('.pin-number')?.classList.add('active'); 
-                    el.querySelector('.pin-wrapper')?.classList.add('bounce-anim'); // Animasyonu başlat
+                    el.querySelector('.pin-wrapper')?.classList.add('bounce-anim'); 
                 }
                 lastActiveMarker = marker; 
                 
@@ -371,12 +379,22 @@
                 
                 currentTargetLatLng = marker.getLatLng();
 
+                // NAVIGASYON BUTON KONTROLÜ
                 if(navigationActive) {
                     document.getElementById('btnStartNav').style.display = 'none';
                     document.getElementById('btnStopNav').style.display = 'block';
                 } else {
                     document.getElementById('btnStartNav').style.display = 'flex';
                     document.getElementById('btnStopNav').style.display = 'none';
+                }
+
+                // SİLME BUTONU KONTROLÜ (İşte burası düzeltildi)
+                const deleteBtn = document.getElementById('btnPanelDelete');
+                if (isEditMode) {
+                    deleteBtn.style.display = 'block';
+                    deleteBtn.onclick = function() { window.triggerDeleteGlobal(key); };
+                } else {
+                    deleteBtn.style.display = 'none';
                 }
             }
         });
@@ -417,8 +435,6 @@
         document.getElementById('btnStopNav').style.display = 'none';
         document.getElementById('navDistance').innerText = "-- m";
         
-        // Navigasyon bitince paneli de kapatabiliriz veya marker seçimini kaldırabiliriz
-        // Şimdilik sadece seçimi kaldırıyoruz
         if (lastActiveMarker) {
              const el = lastActiveMarker.getElement();
              if(el) { 
@@ -472,7 +488,7 @@
                  if(el) { 
                      el.querySelector('.pin-marker')?.classList.remove('active'); 
                      el.querySelector('.pin-number')?.classList.remove('active'); 
-                     el.querySelector('.pin-wrapper')?.classList.remove('bounce-anim'); // Animasyonu durdur
+                     el.querySelector('.pin-wrapper')?.classList.remove('bounce-anim'); 
                  }
                  lastActiveMarker = null;
             }
@@ -515,7 +531,6 @@
             map.getContainer().classList.add("crosshair-cursor-enabled");
             document.getElementById('bottomNavPanel').classList.remove('active');
             
-            // Ekleme modunda seçimi kaldır
             if (lastActiveMarker) {
                  const el = lastActiveMarker.getElement();
                  if(el) { 
@@ -545,7 +560,14 @@
         }
     });
     document.getElementById("btnAddCancel").addEventListener("click", () => { document.getElementById("addModal").classList.remove("show"); tempLatLng = null; });
-    document.getElementById("btnDeleteConfirm").addEventListener("click", () => { if (markerToDelete) { remove(ref(db, `points/${markerToDelete.key}`)); document.getElementById("deleteModal").classList.remove("show"); markerToDelete = null; document.getElementById('bottomNavPanel').classList.remove('active'); } });
+    document.getElementById("btnDeleteConfirm").addEventListener("click", () => { 
+        if (markerToDelete) { 
+            remove(ref(db, `points/${markerToDelete.key}`)); 
+            document.getElementById("deleteModal").classList.remove("show"); 
+            markerToDelete = null; 
+            document.getElementById('bottomNavPanel').classList.remove('active'); 
+        } 
+    });
     document.getElementById("btnDeleteCancel").addEventListener("click", () => { document.getElementById("deleteModal").classList.remove("show"); markerToDelete = null; });
 
     document.getElementById('lockBtn').addEventListener('click', () => {
@@ -558,6 +580,12 @@
         for (const key in markers) {
             const marker = markers[key];
             if (isEditMode) marker.dragging.enable(); else marker.dragging.disable();
+        }
+        
+        // Kilit durumu değiştiğinde panel açıksa silme butonunu güncelle
+        const deleteBtn = document.getElementById('btnPanelDelete');
+        if (deleteBtn) {
+             deleteBtn.style.display = isEditMode ? 'block' : 'none';
         }
     });
 
