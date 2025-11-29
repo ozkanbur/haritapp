@@ -98,6 +98,7 @@
         #addMarkerBtn.active { background: #ef4444; }
         #lockBtn { top: 85px; background: #64748b; }
         #lockBtn.unlocked { background: #22c55e; }
+        /* EXCEL BUTONU STİLİ */
         #exportBtn { top: 150px; background: #16a34a; }
 
         /* Marker Stili */
@@ -361,7 +362,7 @@
 
     function createNumberIcon(num) {
         return L.divIcon({
-            className: "custom-pin",
+            className: "", // Orijinal haline çevirdim, sorun buradan kaynaklı olabilir
             html: `<div class="pin-wrapper">
                     <div class="pin-marker" data-pin="${num}"></div>
                     <div class="pin-number">${num}</div>
@@ -376,26 +377,21 @@
         map.closePopup(); 
     };
 
-    // --- MARKER YÖNETİMİ (KESİN ÇÖZÜM) ---
+    // --- MARKER YÖNETİMİ ---
     let initialLoadDone = false;
 
     function createAndSetupMarker(key, d) {
-        // ÖNEMLİ: Marker'ı BAŞLANGIÇTA draggable: true olarak yaratıyoruz.
-        // Böylece Leaflet gerekli "sürükleme kancalarını" en baştan yüklüyor.
+        // İŞTE ÇÖZÜM BURASI:
+        // 1. Draggable: true olarak başlat (Motoru çalıştır)
         const marker = L.marker([d.lat, d.lng], { icon: createNumberIcon(d.title), draggable: true });
         marker.myTitle = d.title; 
         marker.firebaseKey = key;
 
-        // EĞER edit modu kapalıysa, sürüklemeyi hemen devre dışı bırakıyoruz.
-        // Bu yöntem "sonradan açılmama" sorununu çözer.
-        if (!isEditMode) {
-            marker.dragging.disable();
-        }
+        // 2. Hemen ardından sürüklemeyi elle kapat (Freni çek)
+        // Böylece kilit butonu basılana kadar hareket etmezler.
+        marker.dragging.disable();
 
-        // Sürükleme başladığında Popup varsa kapat
-        marker.on('dragstart', () => {
-            map.closePopup();
-        });
+        marker.on('dragstart', () => { map.closePopup(); });
 
         marker.on('dragend', (event) => {
             const newPos = event.target.getLatLng();
