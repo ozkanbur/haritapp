@@ -18,7 +18,7 @@
         #map { height: 100%; width: 100%; display: none; transition: border 0.3s ease; }
         .map-edit-active { border: 6px solid #22c55e; }
 
-        /* --- UI STİLLERİ --- */
+        /* --- LOGIN EKRANI --- */
         #loginScreen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
@@ -38,14 +38,13 @@
         .login-btn {
             display: block; width: 100%; padding: 16px; margin-bottom: 12px;
             border: none; border-radius: 12px; font-size: 15px; font-weight: bold;
-            cursor: pointer; transition: all 0.2s ease; font-family: 'Montserrat', sans-serif;
+            cursor: pointer; transition: all 0.2s ease;
         }
-        .login-btn:active { transform: scale(0.98); }
         .btn-guest { background: #f1f5f9; color: #475569; }
         .btn-user { background: #2563eb; color: white; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2); }
         .btn-admin { background: #0f172a; color: white; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.3); }
 
-        /* --- NAVİGASYON PANELİ --- */
+        /* --- ARAYÜZ ELEMANLARI --- */
         #navPanel {
             position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
             background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);
@@ -65,7 +64,7 @@
         #startNavBtn { background: #2563eb; }
         #stopNavBtn { background: #ef4444; display: none; }
 
-        /* Modallar */
+        /* Modal Stilleri */
         #authModal, .modal {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.7); backdrop-filter: blur(3px);
@@ -80,7 +79,7 @@
         .btn-delete { background: #ef4444; color: white; flex: 1; padding: 12px; border:none; border-radius:8px; font-weight:bold; cursor:pointer;}
         .error-msg { color: #ef4444; font-size: 14px; margin-bottom: 15px; display: none; text-align: center; font-weight: 600; }
 
-        /* --- BUTONLAR --- */
+        /* Butonlar */
         .search-box { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); width: 200px; padding: 12px; z-index: 1000; border-radius: 24px; border: 2px solid #2563eb; display: none; text-align: center; }
         
         .action-btn {
@@ -99,7 +98,7 @@
         #lockBtn.unlocked { background: #22c55e; }
         #exportBtn { top: 150px; background: #16a34a; }
 
-        /* Marker Stili */
+        /* MARKER TASARIMI */
         .pin-wrapper { position: relative; width: 50px; height: 60px; cursor: pointer; }
         .map-edit-active .leaflet-marker-icon .pin-wrapper { cursor: move !important; }
 
@@ -119,49 +118,29 @@
             white-space: nowrap; transition: all 0.3s; 
             z-index: 20;
         }
-        
-        @keyframes bounceCorrect {
-            0%, 100% { transform: translateY(0) rotate(-45deg) scale(1.2); }
-            50% { transform: translateY(-15px) rotate(-45deg) scale(1.2); }
-        }
 
-        .pin-marker.active { 
-            background: #ef4444 !important; 
-            animation: bounceCorrect 0.8s infinite ease-in-out;
-        }
+        .pin-marker.active { background: #ef4444 !important; transform: rotate(-45deg) scale(1.1); }
         .pin-marker.active + .pin-number { background: #ef4444 !important; top: -35px; }
 
         .user-location-dot {
             width: 20px; height: 20px; background-color: #4285F4; border: 3px solid white; border-radius: 50%;
             box-shadow: 0 0 10px rgba(0,0,0,0.5); animation: pulse 2s infinite;
         }
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(66, 133, 244, 0.7); }
-            70% { box-shadow: 0 0 0 15px rgba(66, 133, 244, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(66, 133, 244, 0); }
-        }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(66, 133, 244, 0.7); } 100% { box-shadow: 0 0 0 15px rgba(66, 133, 244, 0); } }
         
         .leaflet-popup-content-wrapper { border-radius: 12px; }
         .leaflet-popup-content { margin: 8px; text-align: center; }
         .popup-delete-btn {
             background: #ef4444; color: white; border: none; padding: 8px 16px;
-            border-radius: 8px; font-weight: bold; cursor: pointer; font-family: 'Montserrat', sans-serif;
+            border-radius: 8px; font-weight: bold; cursor: pointer;
             display: flex; align-items: center; gap: 5px; font-size: 14px;
         }
-        .popup-delete-btn:hover { background: #dc2626; }
 
         .leaflet-container.crosshair-cursor-enabled { cursor: crosshair; }
         .leaflet-marker-icon.active-zindex { z-index: 1000000 !important; }
 
-        .marker-cluster-small, .marker-cluster-medium, .marker-cluster-large {
-            background-color: rgba(37, 99, 235, 0.6) !important;
-        }
-        .marker-cluster div {
-            background-color: rgba(37, 99, 235, 0.9) !important;
-            color: white !important;
-            font-family: 'Montserrat', sans-serif;
-            font-weight: 800;
-        }
+        .marker-cluster-small, .marker-cluster-medium, .marker-cluster-large { background-color: rgba(37, 99, 235, 0.6) !important; }
+        .marker-cluster div { background-color: rgba(37, 99, 235, 0.9) !important; color: white !important; font-weight: 800; }
     </style>
 </head>
 
@@ -270,17 +249,16 @@
     let targetRole = null;
     let isEditMode = false;
     let lastActiveMarker = null; 
-    
-    // SVG İKONLAR
-    const svgPlus = '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>';
-    const svgClose = '<svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>';
-    const svgLock = '<svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>';
-    const svgUnlock = '<svg viewBox="0 0 24 24"><path d="M12 17c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6-9h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6h1.9c0-1.06.33-2.03.89-2.84C8.85 2.45 7.97 2 7 2c-2.21 0-4 1.79-4 4v2H2v10c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM12 6c1.1 0 2 .9 2 2v2h-4V8c0-1.1.9-2 2-2z"/></svg>';
-
     let targetLatLng = null;
     let watchId = null;
     let userMarker = null;
     let routeLine = null;
+
+    // --- SVG ICONLAR ---
+    const svgPlus = '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>';
+    const svgClose = '<svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>';
+    const svgLock = '<svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>';
+    const svgUnlock = '<svg viewBox="0 0 24 24"><path d="M12 17c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6-9h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6h1.9c0-1.06.33-2.03.89-2.84C8.85 2.45 7.97 2 7 2c-2.21 0-4 1.79-4 4v2H2v10c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM12 6c1.1 0 2 .9 2 2v2h-4V8c0-1.1.9-2 2-2z"/></svg>';
 
     // --- GİRİŞ MANTIĞI ---
     window.selectRole = function(role) { userRole = role; initAppLayout(); };
@@ -339,7 +317,7 @@
     L.imageOverlay('harita.jpg', bounds).addTo(map);
     map.fitBounds(bounds);
 
-    // --- KÜMELEME AYARLARI ---
+    // --- CLUSTER (KÜMELEME) ---
     const markersCluster = L.markerClusterGroup({
         disableClusteringAtZoom: 19,
         spiderfyOnMaxZoom: true,
@@ -355,7 +333,7 @@
 
     function createNumberIcon(num) {
         return L.divIcon({
-            className: "custom-pin",
+            className: "",
             html: `<div class="pin-wrapper">
                     <div class="pin-marker" data-pin="${num}"></div>
                     <div class="pin-number">${num}</div>
@@ -370,23 +348,19 @@
         map.closePopup(); 
     };
 
-    // --- MARKER YARATMA (HATA KORUMALI) ---
+    // --- ÖNEMLİ: MARKER OLUŞTURMA ---
     function createMarker(key, d) {
-        // HATA KORUMASI: Enlem ve Boylamın SAYI olduğundan emin ol
+        // Enlemi ve boylamı sayıya çevir (Güvenlik)
         const lat = parseFloat(d.lat);
         const lng = parseFloat(d.lng);
 
-        if(isNaN(lat) || isNaN(lng)) {
-            console.error("Hatalı koordinat:", key, d);
-            return null; // Bozuk veriyi atla
-        }
-
-        // Draggable: true yapıyoruz, ama hemen kilitliyoruz
+        // Marker: Draggable=true ile yaratılır (Motoru takılır)
+        // Ama hemen .disable() ile freni çekilir.
         const marker = L.marker([lat, lng], { icon: createNumberIcon(d.title), draggable: true });
         marker.myTitle = d.title; 
         marker.firebaseKey = key;
 
-        marker.dragging.disable(); // BAŞLANGIÇTA SÜRÜKLENEMEZ
+        marker.dragging.disable(); // BAŞLANGIÇTA KİLİTLİ
 
         marker.on('dragstart', () => { map.closePopup(); });
 
@@ -396,7 +370,7 @@
             if(targetLatLng && targetLatLng.equals(marker.getLatLng())) { targetLatLng = newPos; updateRoute(); }
         });
 
-        // TIKLAMA OLAYI
+        // Tıklama
         marker.on('click', (e) => {
             L.DomEvent.stopPropagation(e);
             
@@ -438,18 +412,13 @@
         return marker;
     }
 
-    // --- FIREBASE DİNLEYİCİLERİ ---
+    // --- FIREBASE VERİ AKIŞI ---
     onChildAdded(pointsRef, (snap) => {
         if (markers[snap.key]) return; 
-
-        try {
-            const marker = createMarker(snap.key, snap.val());
-            if(marker) {
-                markers[snap.key] = marker;
-                markersCluster.addLayer(marker); 
-            }
-        } catch (e) {
-            console.error("Marker ekleme hatası:", e);
+        const marker = createMarker(snap.key, snap.val());
+        if(marker) {
+            markers[snap.key] = marker;
+            markersCluster.addLayer(marker); 
         }
     });
 
@@ -483,7 +452,7 @@
         }
     });
 
-    // --- KİLİT VE SÜRÜKLEME FONKSİYONU ---
+    // --- KİLİT MEKANİZMASI ---
     const lockBtn = document.getElementById('lockBtn');
     lockBtn.addEventListener('click', () => {
         isEditMode = !isEditMode;
@@ -494,6 +463,7 @@
         
         map.closePopup();
 
+        // Markerları dolaş ve kilidi aç/kapa
         for (let key in markers) {
             const m = markers[key];
             if(isEditMode) {
@@ -504,19 +474,14 @@
         }
     });
 
-    // --- EXCEL İŞLEMLERİ ---
+    // --- DİĞER İŞLEVLER (ARAMA, EKLEME, SİLME, EXCEL) ---
     async function getMarkerDataForExport() {
         const snapshot = await get(pointsRef);
         const data = [];
         if (snapshot.exists()) {
             snapshot.forEach((child) => {
                 const val = child.val();
-                data.push({
-                    'ID': child.key,
-                    'İstif No': val.title,
-                    'Enlem': val.lat,
-                    'Boylam': val.lng
-                });
+                data.push({ 'ID': child.key, 'İstif No': val.title, 'Enlem': val.lat, 'Boylam': val.lng });
             });
         }
         return data;
@@ -526,9 +491,7 @@
         if (data.length === 0) return '';
         const header = Object.keys(data[0]).join(';') + '\n';
         const rows = data.map(row => {
-            return Object.values(row)
-                .map(val => (typeof val === 'number' ? val.toString().replace('.', ',') : `"${val}"`))
-                .join(';');
+            return Object.values(row).map(val => (typeof val === 'number' ? val.toString().replace('.', ',') : `"${val}"`)).join(';');
         }).join('\n');
         return header + rows;
     }
@@ -546,29 +509,18 @@
     document.getElementById('exportBtn').addEventListener('click', async () => {
         const btn = document.getElementById('exportBtn');
         try {
-            btn.disabled = true;
-            const originalContent = btn.innerHTML;
-            btn.innerHTML = '...'; 
-            
+            btn.disabled = true; const originalContent = btn.innerHTML; btn.innerHTML = '...'; 
             const data = await getMarkerDataForExport();
             const csv = convertToCSV(data);
             const filename = `Harita_Marker_Listesi_${new Date().toISOString().slice(0, 10)}.csv`;
-            
             downloadCSV(csv, filename);
             btn.innerHTML = originalContent;
-        } catch (error) {
-            console.error("Hata:", error);
-            alert("Veriler indirilirken hata oluştu.");
-        } finally {
-            btn.disabled = false;
-        }
+        } catch (error) { console.error(error); alert("Hata oluştu."); } finally { btn.disabled = false; }
     });
 
-    // --- DİĞER FONKSİYONLAR ---
     const searchInput = document.getElementById("searchInput");
     searchInput.addEventListener("input", () => {
         const value = searchInput.value.trim();
-        
         if (lastActiveMarker) {
             lastActiveMarker.setZIndexOffset(0);
             const oldPin = lastActiveMarker.getElement()?.querySelector('.pin-marker');
@@ -577,7 +529,6 @@
             if(oldNum) oldNum.classList.remove('active');
             lastActiveMarker = null;
         }
-        
         document.getElementById("navPanel").style.display = "none";
         stopTracking();
         map.closePopup();
@@ -587,9 +538,7 @@
         for (let key in markers) {
             const marker = markers[key];
             if (marker.myTitle.toString() === value) {
-                markersCluster.zoomToShowLayer(marker, function() {
-                    marker.fire('click'); 
-                });
+                markersCluster.zoomToShowLayer(marker, function() { marker.fire('click'); });
                 break;
             }
         }
@@ -604,25 +553,18 @@
     addMarkerBtn.addEventListener("click", () => {
         addingMarkerMode = !addingMarkerMode;
         if (addingMarkerMode) {
-            addMarkerBtn.classList.add("active"); 
-            addMarkerBtn.innerHTML = svgClose;
+            addMarkerBtn.classList.add("active"); addMarkerBtn.innerHTML = svgClose;
             map.getContainer().classList.add("crosshair-cursor-enabled");
-            document.getElementById("navPanel").style.display = "none";
-            map.closePopup();
-            stopTracking();
+            document.getElementById("navPanel").style.display = "none"; map.closePopup(); stopTracking();
         } else {
-            addMarkerBtn.classList.remove("active"); 
-            addMarkerBtn.innerHTML = svgPlus;
+            addMarkerBtn.classList.remove("active"); addMarkerBtn.innerHTML = svgPlus;
             map.getContainer().classList.remove("crosshair-cursor-enabled");
         }
     });
 
     map.on("click", (e) => {
         if (addingMarkerMode) {
-            tempLatLng = e.latlng;
-            addModal.classList.add("show");
-            markerNumberInput.value = "";
-            markerNumberInput.focus();
+            tempLatLng = e.latlng; addModal.classList.add("show"); markerNumberInput.value = ""; markerNumberInput.focus();
         } else {
             if (lastActiveMarker) {
                 lastActiveMarker.setZIndexOffset(0);
@@ -632,9 +574,7 @@
                 if(oldNum) oldNum.classList.remove('active');
                 lastActiveMarker = null;
             }
-            document.getElementById("navPanel").style.display = "none";
-            stopTracking();
-            map.closePopup();
+            document.getElementById("navPanel").style.display = "none"; stopTracking(); map.closePopup();
         }
     });
 
@@ -642,10 +582,8 @@
         const number = markerNumberInput.value.trim();
         if (number && tempLatLng) {
             push(pointsRef, { lat: tempLatLng.lat, lng: tempLatLng.lng, title: number });
-            addModal.classList.remove("show");
-            tempLatLng = null; addingMarkerMode = false;
-            addMarkerBtn.classList.remove("active"); 
-            addMarkerBtn.innerHTML = svgPlus;
+            addModal.classList.remove("show"); tempLatLng = null; addingMarkerMode = false;
+            addMarkerBtn.classList.remove("active"); addMarkerBtn.innerHTML = svgPlus;
             map.getContainer().classList.remove("crosshair-cursor-enabled");
         }
     });
@@ -657,27 +595,23 @@
     confirmDeleteBtn.addEventListener("click", () => {
         if (markerToDelete) {
             remove(ref(db, `points/${markerToDelete.key}`));
-            deleteModal.classList.remove("show");
-            markerToDelete = null;
-            document.getElementById("navPanel").style.display = "none";
-            stopTracking();
+            deleteModal.classList.remove("show"); markerToDelete = null;
+            document.getElementById("navPanel").style.display = "none"; stopTracking();
         }
     });
     deleteCancelBtn.addEventListener("click", () => { deleteModal.classList.remove("show"); markerToDelete = null; });
 
-    // GPS TAKİBİ
     window.startTracking = function() {
-        if (!navigator.geolocation) { alert("Cihazınız GPS desteklemiyor."); return; }
+        if (!navigator.geolocation) { alert("GPS desteklenmiyor."); return; }
         document.getElementById("startNavBtn").style.display = "none";
         document.getElementById("stopNavBtn").style.display = "flex";
-        document.getElementById("navInfo").innerText = "Konum Aranıyor...";
+        document.getElementById("navInfo").innerText = "Aranıyor...";
 
         watchId = navigator.geolocation.watchPosition(
             (position) => {
                 const lat = position.coords.latitude;
                 const lng = position.coords.longitude;
                 const userLatLng = L.latLng(lat, lng);
-
                 if (!userMarker) {
                     const userIcon = L.divIcon({ className: 'user-location-dot', iconSize: [20, 20], iconAnchor: [10, 10] });
                     userMarker = L.marker(userLatLng, {icon: userIcon}).addTo(map);
@@ -691,7 +625,7 @@
                     document.getElementById("navInfo").innerText = "Hedefe Kalan";
                 }
             },
-            (error) => { console.error(error); alert("Konum alınamadı. Lütfen GPS izni verin."); stopTracking(); },
+            (error) => { console.error(error); alert("GPS izni verin."); stopTracking(); },
             { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
         );
     };
