@@ -15,8 +15,8 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { height: 100%; overflow: hidden; background: #222; font-family: 'Montserrat', sans-serif; }
         
-        /* Harita arka planını GRİ yaptık. Resim yüklenmezse bile haritayı göreceksin */
-        #map { height: 100%; width: 100%; background: #333; display: none; }
+        /* Harita Yeri: Resim yoksa bile GRİ görünecek */
+        #map { height: 100%; width: 100%; background-color: #333; display: none; }
         .map-edit-active { border: 6px solid #22c55e; box-sizing: border-box; }
 
         /* --- LOGIN EKRANI --- */
@@ -109,9 +109,9 @@
             <div class="brand-name">Özkan KANBUR</div>
             <div class="brand-title">Orman Endüstri Mühendisi</div>
         </div>
-        <button class="login-btn btn-guest" onclick="selectRole('guest')">Misafir Olarak Devam Et</button>
-        <button class="login-btn btn-user" onclick="openAuthModal('user')">Kullanıcı Girişi Yap</button>
-        <button class="login-btn btn-admin" onclick="openAuthModal('admin')">Yönetici Girişi Yap</button>
+        <button id="btnGuest" class="login-btn btn-guest">Misafir Olarak Devam Et</button>
+        <button id="btnUser" class="login-btn btn-user">Kullanıcı Girişi Yap</button>
+        <button id="btnAdmin" class="login-btn btn-admin">Yönetici Girişi Yap</button>
     </div>
 </div>
 
@@ -122,8 +122,8 @@
         <input type="password" id="authPassword" class="auth-input" placeholder="Şifre">
         <div id="authError" class="error-msg">Hatalı kullanıcı adı veya şifre!</div>
         <div class="modal-buttons">
-            <button class="btn-cancel" onclick="closeAuthModal()">İptal</button>
-            <button class="btn-save" onclick="attemptLogin()">Giriş</button>
+            <button id="authCancel" class="btn-cancel">İptal</button>
+            <button id="authLogin" class="btn-save">Giriş</button>
         </div>
     </div>
 </div>
@@ -136,8 +136,8 @@
 <div id="navPanel">
     <div id="navInfo">Hedefe Mesafe</div>
     <div id="navDistance">-- m</div>
-    <button id="startNavBtn" class="nav-btn" onclick="startTracking()"><svg style="width:20px;height:20px;fill:white" viewBox="0 0 24 24"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg> Rotayı Başlat</button>
-    <button id="stopNavBtn" class="nav-btn" onclick="stopTracking()"><svg style="width:20px;height:20px;fill:white" viewBox="0 0 24 24"><path d="M18 18H6V6h12v12z"/></svg> Takibi Bitir</button>
+    <button id="startNavBtn" class="nav-btn"><svg style="width:20px;height:20px;fill:white" viewBox="0 0 24 24"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg> Rotayı Başlat</button>
+    <button id="stopNavBtn" class="nav-btn"><svg style="width:20px;height:20px;fill:white" viewBox="0 0 24 24"><path d="M18 18H6V6h12v12z"/></svg> Takibi Bitir</button>
 </div>
 
 <div id="addModal" class="modal">
@@ -171,7 +171,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, push, onChildAdded, onChildChanged, onChildRemoved, remove, update, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    // --- YAPILANDIRMA ---
     const firebaseConfig = {
         apiKey: "AIzaSyBALVTNtwpBZEB4t8fhb7_I3nZJZzrnJU4",
         authDomain: "appharita.firebaseapp.com",
@@ -182,14 +181,14 @@
         appId: "1:825896245452:web:15ae33b66df6446d708a69",
         measurementId: "G-3GS17644DL"
     };
+
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     const pointsRef = ref(db, "points");
 
-    // --- GLOBAL DEĞİŞKENLER ---
-    // (Window objesine atıyoruz ki HTML onclick görebilsin)
-    window.userRole = null;
-    window.targetRole = null;
+    // Değişkenler
+    let userRole = null;
+    let targetRole = null;
     let isEditMode = false;
     let lastActiveMarker = null; 
     let targetLatLng = null;
@@ -219,33 +218,50 @@
     const markersCluster = L.markerClusterGroup({ disableClusteringAtZoom: 19, spiderfyOnMaxZoom: true, showCoverageOnHover: false, chunkedLoading: true });
     map.addLayer(markersCluster);
 
-    // --- GİRİŞ VE UI FONKSİYONLARI (Window'a bağlı) ---
-    window.selectRole = function(role) { window.userRole = role; initAppLayout(); };
-    window.openAuthModal = function(role) {
-        window.targetRole = role;
+    // --- EVENT LISTENERS (GİRİŞ BUTONLARI BURADA BAĞLANIYOR) ---
+    // HTML onclick kullanmıyoruz çünkü module yapısı onları görmüyor.
+    // Burası JavaScript'in butonları yakaladığı yerdir.
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        // DOM hazır olduğunda dinleyicileri ekle
+        document.getElementById('btnGuest').addEventListener('click', () => { userRole = 'guest'; initAppLayout(); });
+        document.getElementById('btnUser').addEventListener('click', () => openAuthModal('user'));
+        document.getElementById('btnAdmin').addEventListener('click', () => openAuthModal('admin'));
+        document.getElementById('authCancel').addEventListener('click', closeAuthModal);
+        document.getElementById('authLogin').addEventListener('click', attemptLogin);
+        
+        document.getElementById('startNavBtn').addEventListener('click', startTracking);
+        document.getElementById('stopNavBtn').addEventListener('click', stopTracking);
+    });
+
+    function openAuthModal(role) {
+        targetRole = role;
         document.getElementById('authModal').style.display = 'flex';
         document.getElementById('authTitle').innerText = role === 'admin' ? 'Yönetici Girişi' : 'Kullanıcı Girişi';
         document.getElementById('authError').style.display = 'none';
         document.getElementById('authUsername').value = '';
         document.getElementById('authPassword').value = '';
         document.getElementById('authUsername').focus();
-    };
-    window.closeAuthModal = function() { document.getElementById('authModal').style.display = 'none'; };
-    window.attemptLogin = function() {
+    }
+    function closeAuthModal() { document.getElementById('authModal').style.display = 'none'; }
+
+    function attemptLogin() {
         const u = document.getElementById('authUsername').value.trim();
         const p = document.getElementById('authPassword').value.trim();
-        if (window.targetRole === 'user' && u === 'depo' && p === '1234') { window.userRole = 'user'; initAppLayout(); }
-        else if (window.targetRole === 'admin' && u === 'admin' && p === '1940') { window.userRole = 'admin'; initAppLayout(); }
+        if (targetRole === 'user' && u === 'depo' && p === '1234') { userRole = 'user'; initAppLayout(); }
+        else if (targetRole === 'admin' && u === 'admin' && p === '1940') { userRole = 'admin'; initAppLayout(); }
         else { document.getElementById('authError').style.display = 'block'; }
-    };
+    }
 
     function initAppLayout() {
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('authModal').style.display = 'none';
-        document.getElementById('map').style.display = 'block'; // Haritayı görünür yap
+        
+        const mapEl = document.getElementById('map');
+        mapEl.style.display = 'block'; // Haritayı görünür yap
         document.getElementById('searchInput').style.display = 'block';
         
-        // *KRİTİK DÜZELTME*: Harita görünür olduktan hemen sonra boyutunu hesaplat
+        // *KRİTİK DÜZELTME*: Harita boyutunu yeniden hesapla
         setTimeout(() => {
             map.invalidateSize();
             map.fitBounds(bounds);
@@ -255,7 +271,7 @@
         const lockBtn = document.getElementById('lockBtn');
         const exportBtn = document.getElementById('exportBtn');
 
-        if (window.userRole === 'guest') { 
+        if (userRole === 'guest') { 
             addBtn.style.display = 'none'; lockBtn.style.display = 'none'; exportBtn.style.display = 'none';
         } else { 
             addBtn.style.display = 'flex'; lockBtn.style.display = 'flex'; exportBtn.style.display = 'flex';
@@ -275,7 +291,7 @@
         });
     }
 
-    // Silme fonksiyonunu window'a bağla
+    // Window'a bağlayarak popup içinden çağırılmasını sağlıyoruz
     window.triggerDeleteGlobal = function(key) {
         markerToDelete = { key: key, marker: markers[key] };
         document.getElementById("deleteModal").classList.add("show");
@@ -322,7 +338,7 @@
                 document.getElementById("navPanel").style.display = "flex";
                 document.getElementById("navDistance").innerText = "Hazır";
 
-                if (window.userRole === 'admin' && isEditMode) {
+                if (userRole === 'admin' && isEditMode) {
                     const btnHtml = `<button onclick="window.triggerDeleteGlobal('${key}')" class="popup-delete-btn">
                                         <svg style="width:16px;height:16px;fill:white;" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
                                         Sil
