@@ -271,7 +271,7 @@
     let userRole = null;
     let targetRole = null;
     let isEditMode = false;
-    let lastActiveMarker = null; // PERFORMANS İÇİN ÖNEMLİ: Son tıklananı tutar
+    let lastActiveMarker = null; 
     
     // SVG İKONLAR
     const svgPlus = '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>';
@@ -313,7 +313,7 @@
         
         const addBtn = document.getElementById('addMarkerBtn');
         const lockBtn = document.getElementById('lockBtn');
-        const exportBtn = document.getElementById('exportBtn'); // Yeni buton
+        const exportBtn = document.getElementById('exportBtn');
 
         if (userRole === 'guest') { 
             addBtn.style.display = 'none'; 
@@ -336,31 +336,30 @@
     const map = L.map('map', {
         center: bounds.getCenter(),
         zoom: 16, minZoom: 14, maxZoom: 22, zoomControl: false,
-        preferCanvas: true, // Performans için
-        markerZoomAnimation: false // Mobilde takılmayı önlemek için
+        preferCanvas: true, 
+        markerZoomAnimation: false
     });
     L.control.zoom({ position: 'bottomright' }).addTo(map);
     L.imageOverlay('harita.jpg', bounds).addTo(map);
     map.fitBounds(bounds);
 
-    // --- KÜMELEME (CLUSTERING) AYARLARI ---
-    // Bu kısım 1000 tane markerı gruplayarak kasmayı engeller
+    // --- KÜMELEME AYARLARI ---
     const markersCluster = L.markerClusterGroup({
-        disableClusteringAtZoom: 19, // Çok yaklaştığında kümeyi aç, tek tek göster
+        disableClusteringAtZoom: 19,
         spiderfyOnMaxZoom: true,
         showCoverageOnHover: false,
-        chunkedLoading: true // Yüklemeyi parçalara bölerek tarayıcıyı dondurmaz
+        chunkedLoading: true
     });
     map.addLayer(markersCluster);
 
-    const markers = {}; // Hızlı erişim için
+    const markers = {};
     let addingMarkerMode = false;
     let tempLatLng = null;
     let markerToDelete = null;
 
     function createNumberIcon(num) {
         return L.divIcon({
-            className: "",
+            className: "custom-pin", // Class ismi güncellendi
             html: `<div class="pin-wrapper">
                     <div class="pin-marker" data-pin="${num}"></div>
                     <div class="pin-number">${num}</div>
@@ -375,15 +374,25 @@
         map.closePopup(); 
     };
 
-    // --- OPTİMİZE EDİLMİŞ VERİ YÖNETİMİ ---
+    // --- MARKER YÖNETİMİ (DÜZELTİLDİ) ---
     let initialLoadDone = false;
 
     function createAndSetupMarker(key, d) {
+        // Varsayılan draggable: false
         const marker = L.marker([d.lat, d.lng], { icon: createNumberIcon(d.title), draggable: false });
         marker.myTitle = d.title; 
         marker.firebaseKey = key;
 
-        if (isEditMode) marker.dragging.enable();
+        // Edit modu açıksa, yeni eklenen veya yüklenen marker'ı sürüklenebilir yap
+        if (isEditMode) {
+            marker.options.draggable = true; // Option'ı güncelle
+            marker.dragging.enable();
+        }
+
+        // Sürükleme başladığında Popup varsa kapat (Çakışmayı önler)
+        marker.on('dragstart', () => {
+            map.closePopup();
+        });
 
         marker.on('dragend', (event) => {
             const newPos = event.target.getLatLng();
@@ -391,12 +400,12 @@
             if(targetLatLng && targetLatLng.equals(marker.getLatLng())) { targetLatLng = newPos; updateRoute(); }
         });
 
-        // TIKLAMA OLAYI (Performans Optimize Edildi)
+        // TIKLAMA OLAYI
         marker.on('click', (e) => {
+            // Sürükleme işlemindeyken tıklama tetiklenmemeli, ancak Leaflet bunu genelde halleder.
             L.DomEvent.stopPropagation(e);
             
             if (!addingMarkerMode) {
-                // Sadece son aktif olanı temizle (Döngü yok, kasma yok)
                 if (lastActiveMarker) {
                     lastActiveMarker.setZIndexOffset(0);
                     const oldPin = lastActiveMarker.getElement()?.querySelector('.pin-marker');
@@ -406,15 +415,15 @@
                 }
 
                 marker.setZIndexOffset(1000000);
-                const pinEl = marker.getElement().querySelector('.pin-marker');
-                const numEl = marker.getElement().querySelector('.pin-number');
+                const pinEl = marker.getElement()?.querySelector('.pin-marker');
+                const numEl = marker.getElement()?.querySelector('.pin-number');
                 if(pinEl) pinEl.classList.add('active');
                 if(numEl) numEl.classList.add('active');
 
-                lastActiveMarker = marker; // Yeni aktif markerı kaydet
+                lastActiveMarker = marker; 
 
                 // Navigasyon
-                map.setView(marker.getLatLng(), 19); // Yakınlaş
+                map.setView(marker.getLatLng(), 19); 
                 targetLatLng = marker.getLatLng();
                 document.getElementById("navPanel").style.display = "flex";
                 document.getElementById("navDistance").innerText = "Hazır";
@@ -451,7 +460,6 @@
                 batchMarkers.push(marker); 
             });
 
-            // HEPSİNİ KÜMEYE EKLE (Map yerine Cluster'a)
             markersCluster.addLayers(batchMarkers);
         }
 
@@ -464,14 +472,21 @@
 
         const marker = createAndSetupMarker(snap.key, snap.val());
         markers[snap.key] = marker;
-        markersCluster.addLayer(marker); // Kümeye ekle
+        markersCluster.addLayer(marker); 
     });
 
     onChildChanged(pointsRef, (snap) => {
         const marker = markers[snap.key];
         if (marker) {
             const d = snap.val();
-            marker.setLatLng([d.lat, d.lng]);
+            // Eğer sürükleme işlemini yapan bizsek setLatLng yapmamalıyız yoksa titrer.
+            // Ancak basitlik adına burada bırakıyoruz, dragend zaten güncelledi.
+            // Firebase'den gelen veri ile marker konumu farklıysa (başka cihazdan geldiyse) güncelle.
+            const cur = marker.getLatLng();
+            if (cur.lat !== d.lat || cur.lng !== d.lng) {
+                marker.setLatLng([d.lat, d.lng]);
+            }
+            
             if(marker.myTitle !== d.title) {
                 marker.setIcon(createNumberIcon(d.title));
                 marker.myTitle = d.title;
@@ -485,7 +500,7 @@
     onChildRemoved(pointsRef, (snap) => {
         const marker = markers[snap.key];
         if (marker) {
-            markersCluster.removeLayer(marker); // Kümeden sil
+            markersCluster.removeLayer(marker); 
             delete markers[snap.key];
             
             if (targetLatLng && targetLatLng.equals(marker.getLatLng())) {
@@ -495,7 +510,7 @@
         }
     });
 
-    // --- EXCEL'E AKTAR (CSV) FONKSİYONLARI ---
+    // --- EXCEL'E AKTAR ---
     async function getMarkerDataForExport() {
         const snapshot = await get(pointsRef);
         const data = [];
@@ -535,13 +550,12 @@
         document.body.removeChild(downloadLink);
     }
 
-    // EXCEL BUTON DİNLEYİCİSİ
     document.getElementById('exportBtn').addEventListener('click', async () => {
         const btn = document.getElementById('exportBtn');
         try {
             btn.disabled = true;
             const originalContent = btn.innerHTML;
-            btn.innerHTML = '...'; // Yükleniyor ikonu
+            btn.innerHTML = '...'; 
             
             const data = await getMarkerDataForExport();
             const csv = convertToCSV(data);
@@ -598,18 +612,27 @@
         document.getElementById("navInfo").innerText = "Takip";
     };
 
+    // --- KİLİT VE SÜRÜKLEME DÜZENLEMESİ ---
     const lockBtn = document.getElementById('lockBtn');
     lockBtn.addEventListener('click', () => {
         isEditMode = !isEditMode;
+        
         lockBtn.innerHTML = isEditMode ? svgUnlock : svgLock;
         lockBtn.classList.toggle('unlocked', isEditMode);
         document.getElementById('map').classList.toggle('map-edit-active', isEditMode);
         
         map.closePopup();
 
+        // Kilit durumuna göre tüm markerları güncelle
         for (let key in markers) {
-            if(isEditMode) markers[key].dragging.enable();
-            else markers[key].dragging.disable();
+            const m = markers[key];
+            if(isEditMode) {
+                m.options.draggable = true; // Option güncelle
+                m.dragging.enable();        // Handler etkinleştir
+            } else {
+                m.options.draggable = false;
+                m.dragging.disable();
+            }
         }
     });
 
@@ -617,7 +640,6 @@
     searchInput.addEventListener("input", () => {
         const value = searchInput.value.trim();
         
-        // Temizlik
         if (lastActiveMarker) {
             lastActiveMarker.setZIndexOffset(0);
             const oldPin = lastActiveMarker.getElement()?.querySelector('.pin-marker');
@@ -636,9 +658,8 @@
         for (let key in markers) {
             const marker = markers[key];
             if (marker.myTitle.toString() === value) {
-                // KÜMELENME İÇİN ÖZEL ARAMA
                 markersCluster.zoomToShowLayer(marker, function() {
-                    marker.fire('click'); // Bulunan markerı tıkla
+                    marker.fire('click'); 
                 });
                 break;
             }
@@ -674,7 +695,6 @@
             markerNumberInput.value = "";
             markerNumberInput.focus();
         } else {
-            // Boşluğa tıklayınca seçimi kaldır
             if (lastActiveMarker) {
                 lastActiveMarker.setZIndexOffset(0);
                 const oldPin = lastActiveMarker.getElement()?.querySelector('.pin-marker');
@@ -708,7 +728,6 @@
     confirmDeleteBtn.addEventListener("click", () => {
         if (markerToDelete) {
             remove(ref(db, `points/${markerToDelete.key}`));
-            // Not: onChildRemoved tetikleneceği için buradan silmeye gerek yok
             deleteModal.classList.remove("show");
             markerToDelete = null;
             document.getElementById("navPanel").style.display = "none";
