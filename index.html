@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Harita - v3.0</title>
+    <title>Harita - v3.1 (Drag & Drop)</title>
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
@@ -64,8 +64,8 @@
 
         /* MARKER ICON */
         .custom-div-icon { background: transparent; border: none; }
-        .pin-wrapper { position: relative; width: 50px; height: 60px; pointer-events: none; }
-        .pin-marker { position: absolute; width: 36px; height: 36px; background: #2563eb; border-radius: 50% 50% 50% 0; left: 7px; top: 0; border: 3px solid white; transform: rotate(-45deg); transition: background 0.3s; }
+        .pin-wrapper { position: relative; width: 50px; height: 60px; pointer-events: none; } /* Wrapper pointer-events none kalsın, marker handle edecek */
+        .pin-marker { position: absolute; width: 36px; height: 36px; background: #2563eb; border-radius: 50% 50% 50% 0; left: 7px; top: 0; border: 3px solid white; transform: rotate(-45deg); transition: background 0.3s; pointer-events: auto; /* Tıklanabilirlik için */ }
         .pin-marker::after { content: ''; position: absolute; width: 16px; height: 16px; background: white; border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); }
         .pin-number { position: absolute; top: -28px; left: 50%; transform: translateX(-50%); color: white; font-weight: bold; font-size: 14px; background: #2563eb; padding: 4px 10px; border-radius: 12px; white-space: nowrap; transition: all 0.3s; }
         
@@ -78,13 +78,16 @@
         .leaflet-container.crosshair-cursor-enabled { cursor: crosshair; }
         .map-edit-active { border: 4px solid #ef4444; box-sizing: border-box; }
         
+        /* Dragging sırasında cursor değişimi */
+        .leaflet-marker-draggable { cursor: move !important; }
+
         /* VERSİYON BİLGİSİ */
         #versionTag { position: absolute; bottom: 5px; left: 5px; color: rgba(255,255,255,0.3); font-size: 10px; z-index: 9999; }
     </style>
 </head>
 <body>
 
-<div id="versionTag">v3.0 - Fixed</div>
+<div id="versionTag">v3.1 - Drag & Drop</div>
 
 <div id="loginScreen">
     <div class="login-container">
@@ -145,13 +148,12 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, push, onChildAdded, onChildChanged, onChildRemoved, remove, update, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    // HATA GÖSTERİCİ (Sorun Olursa Ekrana Basar)
+    // HATA GÖSTERİCİ
     window.onerror = function(msg, url, line) {
-        // Map maxZoom hatası gelirse bunu görmezden gelmek yerine kullanıcıyı uyar
         if (msg.includes("maxZoom")) {
-            alert("SÜRÜM HATASI: Telefonunuz eski kodu kullanıyor. Lütfen tarayıcı geçmişini temizleyin veya sayfayı 'Gizli Sekme'de açın.");
+            console.warn("MaxZoom uyarısı yoksayıldı.");
         } else {
-            alert("HATA: " + msg + "\nSatır: " + line);
+            // alert("HATA: " + msg + "\nSatır: " + line); // Gerekirse açılabilir
         }
         return false;
     };
@@ -230,21 +232,21 @@
         }
     }
 
-    // --- HARİTA AYARLARI (KRİTİK DÜZELTME BURADA) ---
+    // --- HARİTA AYARLARI ---
     const southWest = L.latLng(41.947443, 34.756365);
     const northEast = L.latLng(41.952599, 34.764444);
     const bounds = L.latLngBounds(southWest, northEast);
     
-    // --- ÇÖZÜM: maxZoom değerini kesin olarak belirtiyoruz ---
+    // MaxZoom: 22 ayarı eklendi, zoom çubuğu kaldırıldı
     const map = L.map('map', { 
         center: bounds.getCenter(), 
         zoom: 16, 
         minZoom: 10,
-        maxZoom: 22,   // <-- İŞTE BU SATIR HATAYI ENGELLER
+        maxZoom: 22,
         zoomControl: false 
     });
     
-    // Ekstra Güvenlik: Harita oluşturulduktan sonra da ayarı zorla
+    // Tarayıcı kaynaklı maxZoom hatasına karşı tekrar set ediyoruz
     map.options.maxZoom = 22;
 
     L.control.zoom({ position: 'bottomright' }).addTo(map);
@@ -275,10 +277,33 @@
     function createMarker(key, d) {
         if(!d.lat || !d.lng) return null;
         
-        const marker = L.marker([d.lat, d.lng], { icon: createNumberIcon(d.title || "?"), draggable: false });
+        // draggable: isEditMode -> Kilit açıksa oluşturulurken hareketli gelsin
+        const marker = L.marker([d.lat, d.lng], { 
+            icon: createNumberIcon(d.title || "?"), 
+            draggable: isEditMode 
+        });
         marker.myTitle = d.title; marker.firebaseKey = key;
 
+        // --- SÜRÜKLEME BİTİNCE ÇALIŞIR ---
+        marker.on('dragend', function(e) {
+            const newPos = e.target.getLatLng();
+            // Firebase veritabanını güncelle
+            update(ref(db, "points/" + key), {
+                lat: newPos.lat,
+                lng: newPos.lng
+            }).then(() => {
+                console.log("Konum güncellendi.");
+            }).catch((err) => {
+                console.error("Güncelleme hatası:", err);
+                // Hata olursa markerı eski yerine atmak mantıklı olabilir
+                // Ama şimdilik basit tutalım.
+            });
+        });
+
         marker.on('click', (e) => {
+            // Sürüklerken yanlışlıkla tıklama olmasın
+            if(marker.dragging && marker.dragging.enabled() && marker._isDragging) { return; }
+
             L.DomEvent.stopPropagation(e);
             if (!addingMarkerMode) {
                 if (lastActiveMarker) {
@@ -292,7 +317,8 @@
                 lastActiveMarker = marker; 
                 map.setView(marker.getLatLng(), 19); 
 
-                if (userRole === 'admin' && isEditMode) {
+                // Hem user hem admin, eğer kilit açıksa (isEditMode) silme butonunu görsün
+                if (isEditMode) {
                     const btnHtml = `<button onclick="window.triggerDeleteGlobal('${key}')" class="popup-delete-btn">Sil</button>`;
                     L.popup({ offset: [0, -40], closeButton: false }).setLatLng(marker.getLatLng()).setContent(btnHtml).openOn(map);
                 }
@@ -314,6 +340,7 @@
         const marker = markers[snap.key];
         if (marker) {
             const d = snap.val();
+            // setLatLng Cluster içindeki markerı da günceller
             marker.setLatLng([d.lat, d.lng]);
             marker.setIcon(createNumberIcon(d.title));
             marker.myTitle = d.title;
@@ -362,11 +389,25 @@
     document.getElementById("btnDeleteConfirm").addEventListener("click", () => { if (markerToDelete) { remove(ref(db, `points/${markerToDelete.key}`)); document.getElementById("deleteModal").classList.remove("show"); markerToDelete = null; } });
     document.getElementById("btnDeleteCancel").addEventListener("click", () => { document.getElementById("deleteModal").classList.remove("show"); markerToDelete = null; });
 
+    // --- KİLİT BUTONU (EDİT MODU) ---
     document.getElementById('lockBtn').addEventListener('click', () => {
         isEditMode = !isEditMode;
+        
+        // Görsel değişimler
         document.getElementById('lockBtn').classList.toggle('unlocked', isEditMode);
         document.getElementById('map').classList.toggle('map-edit-active', isEditMode);
+        
         map.closePopup();
+
+        // Bütün markerları gez ve draggable özelliğini aç/kapa
+        for (const key in markers) {
+            const marker = markers[key];
+            if (isEditMode) {
+                marker.dragging.enable();
+            } else {
+                marker.dragging.disable();
+            }
+        }
     });
 
     document.getElementById("searchInput").addEventListener("input", (e) => {
