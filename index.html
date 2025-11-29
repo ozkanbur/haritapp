@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Depo Navigasyon - v4.2 (Silme Düzeltildi)</title>
+    <title>Depo Navigasyon - v4.3</title>
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
@@ -30,7 +30,13 @@
             text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
         }
         .brand-name { font-size: 26px; font-weight: 800; color: #1e293b; margin-bottom: 5px; text-transform: uppercase; }
-        .brand-title { font-size: 14px; font-weight: 600; color: #64748b; margin-bottom: 15px; text-transform: uppercase; }
+        .brand-title { font-size: 14px; font-weight: 600; color: #64748b; margin-bottom: 5px; text-transform: uppercase; }
+        
+        /* YENİ EKLENEN SLOGAN STİLİ */
+        .brand-slogan { 
+            font-size: 11px; font-weight: 800; color: #ef4444; 
+            margin-bottom: 25px; text-transform: uppercase; letter-spacing: 1px; 
+        }
 
         .login-btn {
             display: block; width: 100%; padding: 16px; margin-bottom: 12px;
@@ -113,12 +119,10 @@
             border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer;
             width: 100%; display: none; 
         }
-        
-        /* YENİ EKLENEN PANEL İÇİ SİL BUTONU */
         .btn-delete-nav {
             background: #ef4444; color: white; border: none; padding: 15px;
             border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer;
-            width: 100%; display: none; /* Başlangıçta gizli */
+            width: 100%; display: none; 
         }
         
         .user-location-marker {
@@ -138,12 +142,14 @@
 </head>
 <body>
 
-<div id="versionTag">v4.2 - Silme Düzeltildi</div>
+<div id="versionTag">v4.3 - Türk Mühendisliğinin Dijital Gücü</div>
 
 <div id="loginScreen">
     <div class="login-container">
-        <div class="brand-name">Özkan KANBUR - v4.2</div>
+        <div class="brand-name">Özkan KANBUR - v4.3</div>
         <div class="brand-title">Orman Endüstri Mühendisi</div>
+        <div class="brand-slogan">Türk Mühendisliğinin Dijital Gücü</div>
+        
         <button id="btnGuest" class="login-btn btn-guest">Misafir Olarak Devam Et</button>
         <button id="btnUser" class="login-btn btn-user">Kullanıcı Girişi Yap</button>
         <button id="btnAdmin" class="login-btn btn-admin">Yönetici Girişi Yap</button>
@@ -189,7 +195,6 @@
         İstife Git (Başlat)
     </button>
     <button id="btnStopNav" class="btn-stop-nav">Navigasyonu Bitir</button>
-    
     <button id="btnPanelDelete" class="btn-delete-nav">Bu İstifi Sil</button>
 </div>
 
@@ -379,7 +384,6 @@
                 
                 currentTargetLatLng = marker.getLatLng();
 
-                // NAVIGASYON BUTON KONTROLÜ
                 if(navigationActive) {
                     document.getElementById('btnStartNav').style.display = 'none';
                     document.getElementById('btnStopNav').style.display = 'block';
@@ -388,7 +392,7 @@
                     document.getElementById('btnStopNav').style.display = 'none';
                 }
 
-                // SİLME BUTONU KONTROLÜ (İşte burası düzeltildi)
+                // SİLME BUTONU
                 const deleteBtn = document.getElementById('btnPanelDelete');
                 if (isEditMode) {
                     deleteBtn.style.display = 'block';
@@ -582,7 +586,6 @@
             if (isEditMode) marker.dragging.enable(); else marker.dragging.disable();
         }
         
-        // Kilit durumu değiştiğinde panel açıksa silme butonunu güncelle
         const deleteBtn = document.getElementById('btnPanelDelete');
         if (deleteBtn) {
              deleteBtn.style.display = isEditMode ? 'block' : 'none';
