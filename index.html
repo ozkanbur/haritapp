@@ -103,7 +103,7 @@
         /* Marker Stili */
         .pin-wrapper { position: relative; width: 50px; height: 60px; cursor: pointer; }
         
-        /* Düzenleme modu açıkken imleci değiştir */
+        /* Edit modunda taşıma imleci */
         .map-edit-active .leaflet-marker-icon .pin-wrapper { cursor: move !important; }
 
         .pin-marker { 
@@ -156,7 +156,6 @@
         .leaflet-container.crosshair-cursor-enabled { cursor: crosshair; }
         .leaflet-marker-icon.active-zindex { z-index: 1000000 !important; }
 
-        /* KÜMELEME STİLİ */
         .marker-cluster-small, .marker-cluster-medium, .marker-cluster-large {
             background-color: rgba(37, 99, 235, 0.6) !important;
         }
@@ -326,6 +325,9 @@
             lockBtn.style.display = 'flex'; 
             exportBtn.style.display = 'flex';
         }
+
+        // BURASI ÇOK ÖNEMLİ: HARİTA AÇILDIĞINDA MARKERLARI YÜKLE
+        loadInitialMarkers();
     }
 
     // --- HARİTA AYARLARI ---
@@ -374,16 +376,15 @@
         map.closePopup(); 
     };
 
-    // --- MARKER OLUŞTURMA VE AYARLAMA ---
+    // --- ANA MARKER YARATMA FONKSİYONU ---
     function createAndSetupMarker(key, d) {
-        // DRAGGABLE ÇÖZÜMÜ BURADA:
-        // Marker'ı draggable: true ile yaratıyoruz ama hemen disable ediyoruz.
-        // Bu sayede özellik yükleniyor ama kilit açılana kadar kapalı kalıyor.
+        // PÜF NOKTASI: Draggable: true olarak yaratıyoruz ama hemen kilitliyoruz.
+        // Bu sayede özellik yükleniyor ama aktif olmuyor.
         const marker = L.marker([d.lat, d.lng], { icon: createNumberIcon(d.title), draggable: true });
         marker.myTitle = d.title; 
         marker.firebaseKey = key;
 
-        marker.dragging.disable(); // Varsayılan olarak kapalı başlat
+        marker.dragging.disable(); // BAŞLANGIÇTA KİLİTLİ
 
         marker.on('dragstart', () => { map.closePopup(); });
 
@@ -414,7 +415,6 @@
 
                 lastActiveMarker = marker; 
 
-                // Navigasyon
                 map.setView(marker.getLatLng(), 19); 
                 targetLatLng = marker.getLatLng();
                 document.getElementById("navPanel").style.display = "flex";
@@ -436,11 +436,29 @@
         return marker;
     }
 
-    // --- FIREBASE DİNLEYİCİLERİ ---
-    // En garantili yöntem budur, optimizasyon yok, doğrudan dinleme var.
-    onChildAdded(pointsRef, (snap) => {
-        if (markers[snap.key]) return; 
+    // --- ESKİ USÜL GARANTİ YÜKLEME ---
+    async function loadInitialMarkers() {
+        const snapshot = await get(pointsRef);
+        if (snapshot.exists()) {
+            const batchMarkers = [];
+            snapshot.forEach((child) => {
+                const key = child.key;
+                const val = child.val();
+                
+                // Eğer zaten varsa atla (Çakışma önleme)
+                if(!markers[key]) {
+                    const marker = createAndSetupMarker(key, val);
+                    markers[key] = marker; 
+                    batchMarkers.push(marker); 
+                }
+            });
+            markersCluster.addLayers(batchMarkers);
+        }
+    }
 
+    // --- CANLI TAKİP ---
+    onChildAdded(pointsRef, (snap) => {
+        if (markers[snap.key]) return; // Zaten yüklüyse tekrar ekleme
         const marker = createAndSetupMarker(snap.key, snap.val());
         markers[snap.key] = marker;
         markersCluster.addLayer(marker); 
@@ -473,7 +491,7 @@
         }
     });
 
-    // --- KİLİT VE SÜRÜKLEME DÜZENLEMESİ ---
+    // --- KİLİT VE SÜRÜKLEME FONKSİYONU ---
     const lockBtn = document.getElementById('lockBtn');
     lockBtn.addEventListener('click', () => {
         isEditMode = !isEditMode;
@@ -484,7 +502,7 @@
         
         map.closePopup();
 
-        // Kilit durumuna göre tüm markerları güncelle
+        // TÜM MARKERLARI DÖNGÜYE AL VE KİLİDİ AÇ/KAPA
         for (let key in markers) {
             const m = markers[key];
             if(isEditMode) {
