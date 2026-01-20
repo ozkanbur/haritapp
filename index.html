@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Depo Navigasyon - v4.4 Premium</title>
+    <title>Depo Navigasyon - Orman Endüstri 3.0</title>
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
@@ -20,20 +20,17 @@
         /* --- PREMIUM GİRİŞ EKRANI TASARIMI --- */
         #loginScreen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            /* Modern Radial Dark Background */
             background: radial-gradient(circle at 50% 0%, #334155 0%, #0f172a 60%, #020617 100%);
             z-index: 5000; display: flex; flex-direction: column;
             align-items: center; justify-content: center; padding: 20px;
         }
 
         .login-container {
-            /* Glassmorphism Specs */
             background: rgba(255, 255, 255, 0.03);
             backdrop-filter: blur(18px);
             -webkit-backdrop-filter: blur(18px);
             border: 1px solid rgba(255, 255, 255, 0.08);
-            border-top: 1px solid rgba(255, 255, 255, 0.15); /* Üst kısım biraz daha parlak */
-            
+            border-top: 1px solid rgba(255, 255, 255, 0.15);
             padding: 40px 30px;
             border-radius: 22px;
             width: 100%; max-width: 380px;
@@ -54,7 +51,6 @@
             margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; 
         }
         
-        /* Kırmızı Slogan */
         .brand-slogan { 
             font-size: 12px; font-weight: 800; color: #ff4747; 
             margin-bottom: 35px; text-transform: uppercase; letter-spacing: 1.5px;
@@ -65,7 +61,6 @@
             width: 40px; height: 2px; background: rgba(255, 71, 71, 0.3); border-radius: 2px;
         }
 
-        /* Buton Genel Stili */
         .login-btn {
             display: flex; align-items: center; justify-content: center; gap: 12px;
             width: 100%; padding: 16px; margin-bottom: 14px;
@@ -76,7 +71,6 @@
         }
         .login-btn svg { width: 20px; height: 20px; fill: currentColor; }
 
-        /* 1) Misafir Butonu (Soft Light) */
         .btn-guest { 
             background: rgba(255, 255, 255, 0.08); 
             color: rgba(255, 255, 255, 0.9);
@@ -87,7 +81,6 @@
             transform: translateY(-2px);
         }
 
-        /* 2) Kullanıcı Butonu (Primary Glow) */
         .btn-user { 
             background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
             color: white;
@@ -99,7 +92,6 @@
             transform: translateY(-2px);
         }
 
-        /* 3) Yönetici Butonu (Dark Premium) */
         .btn-admin { 
             background: rgba(0, 0, 0, 0.6); 
             color: rgba(255, 255, 255, 0.8);
@@ -117,7 +109,7 @@
             font-weight: 500; letter-spacing: 0.5px;
         }
 
-        /* --- DİĞER UI ELEMANLARI (Modal, Harita Butonları vb.) --- */
+        /* --- UI ELEMANLARI --- */
         #authModal, .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); z-index: 6000; align-items: center; justify-content: center; }
         .modal.show { display: flex; }
         .auth-box, .modal-content { background: #1e293b; color: white; padding: 30px; border-radius: 20px; width: 90%; max-width: 350px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
@@ -130,7 +122,6 @@
         .error-msg { color: #ff4747; font-size: 14px; margin-bottom: 15px; display: none; text-align: center; font-weight: 600; }
         .btn-delete { background: #ef4444; color: white; flex: 1; padding: 12px; border:none; border-radius:10px; font-weight:bold; cursor:pointer;}
 
-        /* Harita Butonları */
         .search-box { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); width: 220px; padding: 12px 20px; z-index: 1000; border-radius: 30px; border: none; background: rgba(30, 41, 59, 0.9); color: white; backdrop-filter: blur(5px); display: none; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3); font-family: 'Satoshi', sans-serif; font-size: 14px; }
         .action-btn { position: absolute; right: 20px; width: 50px; height: 50px; border-radius: 16px; border: none; cursor: pointer; z-index: 1000; box-shadow: 0 10px 25px rgba(0,0,0,0.4); display: none; align-items: center; justify-content: center; padding: 0; color: white; transition: all 0.3s ease; }
         .action-btn svg { width: 24px; height: 24px; fill: currentColor; pointer-events: none; }
@@ -150,7 +141,15 @@
         .pin-marker.active { background: #ef4444 !important; }
         .pin-marker.active + .pin-number { background: #ef4444 !important; color: white; top: -38px; }
         
-        /* Bounce Animation */
+        /* --- SARI PİN (YARIM) STİLİ --- */
+        .pin-marker.yarim { 
+             background: #facc15 !important; 
+             border-color: #fef08a !important; 
+        }
+        .pin-marker.yarim + .pin-number {
+            border: 2px solid #facc15;
+        }
+        
         @keyframes bounceAction { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
         .bounce-anim { animation: bounceAction 1s infinite ease-in-out; }
 
@@ -200,20 +199,11 @@
         @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); } 70% { box-shadow: 0 0 0 15px rgba(59, 130, 246, 0); } 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); } }
 
         #versionTag { position: absolute; bottom: 5px; left: 5px; color: rgba(255,255,255,0.15); font-size: 10px; z-index: 9999; }
-        /* SARI PİN (YARIM) STİLİ */
-        .pin-marker.yarim { 
-             background: #facc15 !important; /* Sarı renk */
-            border-color: #fef08a !important; 
-        }
-        /* Sarı pinin üzerindeki numara etiketi de uyumlu olsun istersen (Opsiyonel) */
-        .pin-marker.yarim + .pin-number {
-            border: 2px solid #facc15;
-        }
     </style>
 </head>
 <body>
 
-<div id="versionTag">v4.4</div>
+<div id="versionTag">v4.5</div>
 
 <div id="loginScreen">
     <div class="login-container">
@@ -236,7 +226,7 @@
             Yönetici Girişi Yap
         </button>
         
-        <div class="version-text">v4.3 — Türk Mühendisliğinin Dijital Gücü</div>
+        <div class="version-text">v4.5 — Türk Mühendisliğinin Dijital Gücü</div>
     </div>
 </div>
 
@@ -426,10 +416,17 @@
     const markersCluster = L.markerClusterGroup({ disableClusteringAtZoom: 19, spiderfyOnMaxZoom: true, showCoverageOnHover: false });
     map.addLayer(markersCluster);
 
-    function createNumberIcon(num) {
+    // --- DÜZELTİLEN FONKSİYON: DURUM PARAMETRESİ EKLENDİ ---
+    function createNumberIcon(num, durum) {
+        // Durum 'yarim' ise ekstra class ekle
+        const extraClass = (durum === 'yarim') ? 'yarim' : '';
+        
         return L.divIcon({
             className: "custom-div-icon",
-            html: `<div class="pin-wrapper"><div class="pin-marker" data-pin="${num}"></div><div class="pin-number">${num}</div></div>`,
+            html: `<div class="pin-wrapper">
+                     <div class="pin-marker ${extraClass}" data-pin="${num}"></div>
+                     <div class="pin-number">${num}</div>
+                   </div>`,
             iconSize: [50, 60], iconAnchor: [25, 60]
         });
     }
@@ -442,21 +439,12 @@
     function createMarker(key, d) {
         if(!d.lat || !d.lng) return null;
         
+        // --- DÜZELTME: createNumberIcon ÇAĞRISINA 'd.durum' EKLENDİ ---
         const marker = L.marker([d.lat, d.lng], { 
-            icon: createNumberIcon(d.title || "?"), 
+            icon: createNumberIcon(d.title || "?", d.durum), 
             draggable: isEditMode 
         });
 
-        // --- YENİ EKLENEN KISIM: YARIM KONTROLÜ ---
-        // Eğer veritabanından gelen veride durum='yarim' ise sarı sınıfını ekle
-        if (d.durum === 'yarim') {
-            // Leaflet marker oluşturulduktan sonra DOM elemanına erişmek için biraz beklemek veya
-            // icon create fonksiyonunu güncellemek gerekir. Ancak en pratik yöntem şudur:
-            // createNumberIcon fonksiyonuna parametre göndermek daha temizdir ama
-            // hızlı çözüm için marker'a bir özellik ekleyip icon oluşurken kontrol edeceğiz.
-    
-            // AŞAĞIDAKİ createNumberIcon FONKSİYONUNU GÜNCELLEMEN GEREKECEK
-        }
         marker.myTitle = d.title; marker.firebaseKey = key;
 
         marker.on('dragend', function(e) {
@@ -491,9 +479,8 @@
 
                 document.getElementById('navTargetTitle').innerText = "İstif No: " + d.title;
                 
-                // YIL BİLGİSİNİ GÖSTERME MANTIĞI
                 const navSubtitle = document.querySelector('.nav-subtitle');
-                const yilBilgisi = d.yil || 2025; // Veride yıl yoksa eskidir, 2025 kabul et.
+                const yilBilgisi = d.yil || 2025; 
 
                 if (yilBilgisi == 2026) {
                     navSubtitle.innerHTML = '<span style="color: #4ade80; font-weight:bold;">● 2026 (Aktif)</span>';
@@ -514,7 +501,6 @@
                     document.getElementById('btnStopNav').style.display = 'none';
                 }
 
-                // SİLME BUTONU
                 const deleteBtn = document.getElementById('btnPanelDelete');
                 if (isEditMode) {
                     deleteBtn.style.display = 'block';
@@ -638,7 +624,8 @@
         if (marker) {
             const d = snap.val();
             marker.setLatLng([d.lat, d.lng]);
-            marker.setIcon(createNumberIcon(d.title));
+            // --- DÜZELTME: BURAYA DA d.durum EKLENDİ ---
+            marker.setIcon(createNumberIcon(d.title, d.durum));
             marker.myTitle = d.title;
         }
     });
@@ -676,10 +663,9 @@
 
     document.getElementById("btnAddSave").addEventListener("click", () => {
         const val = document.getElementById("markerNumber").value.trim();
-        const selectedYear = document.getElementById("markerYear").value; // Yıl bilgisini al
+        const selectedYear = document.getElementById("markerYear").value; 
 
         if (val && tempLatLng) {
-            // Firebase'e hem title hem de yil bilgisini gönderiyoruz
             push(pointsRef, { 
                 lat: tempLatLng.lat, 
                 lng: tempLatLng.lng, 
