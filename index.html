@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Depo Navigasyon - Orman Endüstri 3.0</title>
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -12,12 +12,13 @@
     <link href="https://api.fontshare.com/v2/css?f[]=satoshi@900,700,500,400&display=swap" rel="stylesheet">
 
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        /* --- TEMEL AYARLAR --- */
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
         html, body { height: 100%; overflow: hidden; background: #0f172a; font-family: 'Satoshi', sans-serif; }
         
-        #map { height: 100%; width: 100%; background-color: #1e293b; display: none; }
+        #map { height: 100%; width: 100%; background-color: #1e293b; display: none; z-index: 1; }
 
-        /* --- PREMIUM GİRİŞ EKRANI TASARIMI --- */
+        /* GİRİŞ EKRANI */
         #loginScreen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: radial-gradient(circle at 50% 0%, #334155 0%, #0f172a 60%, #020617 100%);
@@ -27,168 +28,127 @@
 
         .login-container {
             background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(18px);
-            -webkit-backdrop-filter: blur(18px);
+            backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
             border: 1px solid rgba(255, 255, 255, 0.08);
             border-top: 1px solid rgba(255, 255, 255, 0.15);
-            padding: 40px 30px;
-            border-radius: 22px;
-            width: 100%; max-width: 380px;
-            text-align: center;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            padding: 40px 30px; border-radius: 22px; width: 100%; max-width: 380px;
+            text-align: center; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
             animation: fadeIn 0.8s ease-out;
         }
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
-        .brand-name { 
-            font-size: 28px; font-weight: 900; color: #ffffff; 
-            margin-bottom: 4px; letter-spacing: -0.5px;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
-        }
-        .brand-title { 
-            font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.6); 
-            margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; 
-        }
-        
-        .brand-slogan { 
-            font-size: 12px; font-weight: 800; color: #ff4747; 
-            margin-bottom: 35px; text-transform: uppercase; letter-spacing: 1.5px;
-            position: relative; display: inline-block;
-        }
-        .brand-slogan::after {
-            content: ''; position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%);
-            width: 40px; height: 2px; background: rgba(255, 71, 71, 0.3); border-radius: 2px;
-        }
+        .brand-name { font-size: 28px; font-weight: 900; color: #ffffff; margin-bottom: 4px; letter-spacing: -0.5px; text-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+        .brand-title { font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.6); margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; }
+        .brand-slogan { font-size: 12px; font-weight: 800; color: #ff4747; margin-bottom: 35px; text-transform: uppercase; letter-spacing: 1.5px; position: relative; display: inline-block; }
+        .brand-slogan::after { content: ''; position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); width: 40px; height: 2px; background: rgba(255, 71, 71, 0.3); border-radius: 2px; }
 
         .login-btn {
             display: flex; align-items: center; justify-content: center; gap: 12px;
             width: 100%; padding: 16px; margin-bottom: 14px;
             border: none; border-radius: 14px; 
             font-family: 'Satoshi', sans-serif; font-size: 15px; font-weight: 700;
-            cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative; overflow: hidden;
+            cursor: pointer; transition: all 0.2s; position: relative; 
+            user-select: none;
         }
-        .login-btn svg { width: 20px; height: 20px; fill: currentColor; }
-
-        .btn-guest { 
-            background: rgba(255, 255, 255, 0.08); 
-            color: rgba(255, 255, 255, 0.9);
-            border: 1px solid rgba(255,255,255,0.05);
-        }
-        .btn-guest:hover { 
-            background: rgba(255, 255, 255, 0.15); 
-            transform: translateY(-2px);
-        }
-
-        .btn-user { 
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-            color: white;
-            box-shadow: 0 4px 20px rgba(37, 99, 235, 0.4);
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        .btn-user:hover { 
-            box-shadow: 0 8px 30px rgba(37, 99, 235, 0.6);
-            transform: translateY(-2px);
-        }
-
-        .btn-admin { 
-            background: rgba(0, 0, 0, 0.6); 
-            color: rgba(255, 255, 255, 0.8);
-            border: 1px solid rgba(255,255,255,0.05);
-        }
-        .btn-admin:hover { 
-            background: rgba(0, 0, 0, 0.9); 
-            color: white;
-            border-color: rgba(255,255,255,0.2);
-        }
-
-        .version-text {
-            position: absolute; bottom: 20px;
-            font-size: 11px; color: rgba(255,255,255,0.2);
-            font-weight: 500; letter-spacing: 0.5px;
-        }
-
-        /* --- UI ELEMANLARI --- */
-        #authModal, .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); z-index: 6000; align-items: center; justify-content: center; }
-        .modal.show { display: flex; }
-        .auth-box, .modal-content { background: #1e293b; color: white; padding: 30px; border-radius: 20px; width: 90%; max-width: 350px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
-        .auth-input, .modal-content input { width: 100%; padding: 14px; margin-bottom: 15px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 10px; font-size: 16px; outline: none; transition: 0.3s; font-family: 'Satoshi', sans-serif;}
-        .auth-input:focus { border-color: #3b82f6; background: rgba(0,0,0,0.5); }
         
-        .modal-buttons { display: flex; gap: 10px; }
+        /* Tıklama sorununu engelleyen kritik kod */
+        .login-btn svg, .login-btn span { pointer-events: none; }
+        .login-btn:active { transform: scale(0.96); }
+
+        .btn-guest { background: rgba(255, 255, 255, 0.08); color: rgba(255, 255, 255, 0.9); border: 1px solid rgba(255,255,255,0.05); }
+        .btn-user { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; box-shadow: 0 4px 20px rgba(37, 99, 235, 0.4); border: 1px solid rgba(255,255,255,0.1); }
+        .btn-admin { background: rgba(0, 0, 0, 0.6); color: rgba(255, 255, 255, 0.8); border: 1px solid rgba(255,255,255,0.05); }
+
+        .version-text { position: absolute; bottom: 20px; font-size: 11px; color: rgba(255,255,255,0.2); font-weight: 500; }
+
+        /* MODALS & INPUTS */
+        #authModal, .modal { 
+            display: none; /* JS ile style.display='flex' yapılınca açılacak */
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); 
+            z-index: 6000; 
+            align-items: center; justify-content: center; 
+        }
+        
+        .auth-box, .modal-content { background: #1e293b; color: white; padding: 25px; border-radius: 20px; width: 90%; max-width: 350px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+        .auth-input, .modal-content input, .modal-content select { width: 100%; padding: 14px; margin-bottom: 15px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 10px; font-size: 16px; outline: none; font-family: 'Satoshi', sans-serif;}
+        
+        .modal-buttons { display: flex; gap: 10px; margin-top: 10px; }
         .btn-save { background: #2563eb; color: white; flex: 1; padding: 12px; border:none; border-radius:10px; font-weight:bold; cursor:pointer;}
         .btn-cancel { background: rgba(255,255,255,0.1); color: white; flex: 1; padding: 12px; border:none; border-radius:10px; font-weight:bold; cursor:pointer;}
-        .error-msg { color: #ff4747; font-size: 14px; margin-bottom: 15px; display: none; text-align: center; font-weight: 600; }
         .btn-delete { background: #ef4444; color: white; flex: 1; padding: 12px; border:none; border-radius:10px; font-weight:bold; cursor:pointer;}
+        .error-msg { color: #ff4747; font-size: 14px; margin-bottom: 15px; display: none; text-align: center; font-weight: 600; }
 
-        .search-box { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); width: 220px; padding: 12px 20px; z-index: 1000; border-radius: 30px; border: none; background: rgba(30, 41, 59, 0.9); color: white; backdrop-filter: blur(5px); display: none; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3); font-family: 'Satoshi', sans-serif; font-size: 14px; }
-        .action-btn { position: absolute; right: 20px; width: 50px; height: 50px; border-radius: 16px; border: none; cursor: pointer; z-index: 1000; box-shadow: 0 10px 25px rgba(0,0,0,0.4); display: none; align-items: center; justify-content: center; padding: 0; color: white; transition: all 0.3s ease; }
+        /* UI CONTROLS */
+        .search-box { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); width: 200px; padding: 10px 20px; z-index: 500; border-radius: 30px; border: none; background: rgba(30, 41, 59, 0.9); color: white; backdrop-filter: blur(5px); display: none; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3); font-family: 'Satoshi', sans-serif; font-size: 14px; }
+        .action-btn { position: absolute; right: 20px; width: 48px; height: 48px; border-radius: 14px; border: none; cursor: pointer; z-index: 500; box-shadow: 0 8px 20px rgba(0,0,0,0.4); display: none; align-items: center; justify-content: center; color: white; transition: all 0.2s; }
+        .action-btn:active { transform: scale(0.95); }
         .action-btn svg { width: 24px; height: 24px; fill: currentColor; pointer-events: none; }
         
         #addMarkerBtn { top: 20px; background: #2563eb; }
         #addMarkerBtn.active { background: #ef4444; }
-        #lockBtn { top: 85px; background: #475569; }
+        #lockBtn { top: 80px; background: #475569; }
         #lockBtn.unlocked { background: #ef4444; }
-        #exportBtn { top: 150px; background: #16a34a; }
-        
-        /* Marker Stilleri */
+        #exportBtn { top: 140px; background: #16a34a; }
+
+        /* MARKER STİLLERİ */
         .custom-div-icon { background: transparent; border: none; }
-        .pin-wrapper { position: relative; width: 50px; height: 60px; pointer-events: none; } 
-        .pin-marker { position: absolute; width: 36px; height: 36px; background: #2563eb; border-radius: 50% 50% 50% 0; left: 7px; top: 0; border: 3px solid white; transform: rotate(-45deg); transition: background 0.3s; pointer-events: auto; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
-        .pin-marker::after { content: ''; position: absolute; width: 16px; height: 16px; background: white; border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); }
-        .pin-number { position: absolute; top: -30px; left: 50%; transform: translateX(-50%); color: #1e293b; font-weight: 800; font-size: 14px; background: white; padding: 4px 10px; border-radius: 8px; white-space: nowrap; transition: all 0.3s; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
-        .pin-marker.active { background: #ef4444 !important; }
-        .pin-marker.active + .pin-number { background: #ef4444 !important; color: white; top: -38px; }
+        .pin-wrapper { position: relative; width: 50px; height: 60px; pointer-events: none; will-change: transform; } 
         
-        /* --- SARI PİN (YARIM) STİLİ --- */
-        .pin-marker.yarim { 
-             background: #facc15 !important; 
-             border-color: #fef08a !important; 
+        .pin-marker { 
+            position: absolute; width: 34px; height: 34px; 
+            background: #2563eb; border-radius: 50% 50% 50% 0; 
+            left: 8px; top: 0; border: 3px solid white; 
+            transform: rotate(-45deg); 
+            transition: background 0.2s; 
+            pointer-events: auto; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2); 
         }
-        .pin-marker.yarim + .pin-number {
-            border: 2px solid #facc15;
-        }
+        .pin-marker::after { content: ''; position: absolute; width: 14px; height: 14px; background: white; border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); }
         
-        @keyframes bounceAction { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+        .pin-number { 
+            position: absolute; top: -28px; left: 50%; transform: translateX(-50%); 
+            color: #1e293b; font-weight: 800; font-size: 13px; 
+            background: white; padding: 2px 8px; border-radius: 6px; 
+            white-space: nowrap; box-shadow: 0 2px 5px rgba(0,0,0,0.2); 
+        }
+
+        .pin-marker.active { background: #ef4444 !important; z-index: 1000; }
+        .pin-marker.active + .pin-number { background: #ef4444 !important; color: white; top: -36px; z-index: 1000; }
+        .pin-marker.yarim { background: #facc15 !important; border-color: #fef08a !important; }
+        .pin-marker.yarim + .pin-number { border: 2px solid #facc15; }
+
+        @keyframes bounceAction { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
         .bounce-anim { animation: bounceAction 1s infinite ease-in-out; }
 
+        /* Cluster Stilleri */
         .marker-cluster-small, .marker-cluster-medium, .marker-cluster-large { background-color: rgba(37, 99, 235, 0.8) !important; }
         .marker-cluster div { background-color: rgba(37, 99, 235, 0.95) !important; color: white !important; font-weight: 800; }
-        .leaflet-container.crosshair-cursor-enabled { cursor: crosshair; }
+        
         .map-edit-active { border: 4px solid #ef4444; box-sizing: border-box; }
         .leaflet-marker-draggable { cursor: move !important; }
 
         /* Navigasyon Paneli */
         #bottomNavPanel {
-            position: fixed; bottom: -320px; left: 0; width: 100%;
-            background: rgba(30, 41, 59, 0.95); backdrop-filter: blur(10px); z-index: 2000;
+            position: fixed; bottom: -350px; left: 0; width: 100%;
+            background: rgba(30, 41, 59, 0.96); backdrop-filter: blur(10px); z-index: 2000;
             border-top-left-radius: 24px; border-top-right-radius: 24px;
             box-shadow: 0 -10px 40px rgba(0,0,0,0.5); border-top: 1px solid rgba(255,255,255,0.1);
-            padding: 25px; transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            padding: 25px; transition: bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex; flex-direction: column; gap: 12px;
+            padding-bottom: 40px; /* iPhone safe area */
         }
         #bottomNavPanel.active { bottom: 0; }
         
         .nav-info-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
         .nav-title { font-size: 20px; font-weight: 800; color: white; }
         .nav-subtitle { font-size: 14px; color: #94a3b8; }
-        .nav-distance { font-size: 24px; font-weight: 900; color: #3b82f6; text-shadow: 0 0 20px rgba(59, 130, 246, 0.5); }
+        .nav-distance { font-size: 24px; font-weight: 900; color: #3b82f6; }
         
-        .btn-start-nav {
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; border: none; padding: 16px;
-            border-radius: 14px; font-size: 16px; font-weight: 800; cursor: pointer;
-            width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px;
-            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
-        }
-        .btn-stop-nav {
-            background: #f59e0b; color: white; border: none; padding: 16px;
-            border-radius: 14px; font-size: 16px; font-weight: 800; cursor: pointer; width: 100%; display: none; 
-        }
-        .btn-delete-nav {
-            background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 16px;
-            border-radius: 14px; font-size: 16px; font-weight: 800; cursor: pointer; width: 100%; display: none; 
-        }
+        .btn-start-nav { background: #2563eb; color: white; border: none; padding: 16px; border-radius: 14px; font-size: 16px; font-weight: 800; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .btn-stop-nav { background: #f59e0b; color: white; border: none; padding: 16px; border-radius: 14px; font-size: 16px; font-weight: 800; cursor: pointer; width: 100%; display: none; }
+        .btn-delete-nav { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 16px; border-radius: 14px; font-size: 16px; font-weight: 800; cursor: pointer; width: 100%; display: none; }
 
         .user-location-marker {
             width: 20px; height: 20px; background: #3b82f6; 
@@ -198,12 +158,12 @@
         }
         @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); } 70% { box-shadow: 0 0 0 15px rgba(59, 130, 246, 0); } 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); } }
 
-        #versionTag { position: absolute; bottom: 5px; left: 5px; color: rgba(255,255,255,0.15); font-size: 10px; z-index: 9999; }
+        #versionTag { position: absolute; bottom: 5px; left: 5px; color: rgba(255,255,255,0.15); font-size: 10px; z-index: 9999; pointer-events: none;}
     </style>
 </head>
 <body>
 
-<div id="versionTag">v4.5</div>
+<div id="versionTag">v6.1 Final Fix</div>
 
 <div id="loginScreen">
     <div class="login-container">
@@ -212,21 +172,18 @@
         <div class="brand-slogan">TÜRK MÜHENDİSLİĞİNİN DİJİTAL GÜCÜ</div>
         
         <button id="btnGuest" class="login-btn btn-guest">
-            <svg viewBox="0 0 24 24"><path d="M12 4a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM6 18c0-2.66 5.33-4 8-4s8 1.34 8 4v2H6v-2z" fill-opacity="0.7"/></svg>
-            Misafir Olarak Devam Et
+            <svg style="width:20px; height:20px; fill:currentColor" viewBox="0 0 24 24"><path d="M12 4a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM6 18c0-2.66 5.33-4 8-4s8 1.34 8 4v2H6v-2z" fill-opacity="0.7"/></svg>
+            <span>Misafir Olarak Devam Et</span>
         </button>
-        
         <button id="btnUser" class="login-btn btn-user">
-            <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-            Kullanıcı Girişi Yap
+            <svg style="width:20px; height:20px; fill:currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+            <span>Kullanıcı Girişi Yap</span>
         </button>
-        
         <button id="btnAdmin" class="login-btn btn-admin">
-            <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 6c1.4 0 2.8 1.1 2.8 2.5V11c.6 0 1.2.6 1.2 1.2v3.5c0 .7-.6 1.3-1.2 1.3H9.2c-.6 0-1.2-.6-1.2-1.2v-3.5c0-.7.6-1.3 1.2-1.2V9.5C9.2 8.1 10.6 7 12 7zm0 1c-.8 0-1.5.7-1.5 1.5V11h3V9.5c0-.8-.7-1.5-1.5-1.5z"/></svg>
-            Yönetici Girişi Yap
+            <svg style="width:20px; height:20px; fill:currentColor" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 6c1.4 0 2.8 1.1 2.8 2.5V11c.6 0 1.2.6 1.2 1.2v3.5c0 .7-.6 1.3-1.2 1.3H9.2c-.6 0-1.2-.6-1.2-1.2v-3.5c0-.7.6-1.3 1.2-1.2V9.5C9.2 8.1 10.6 7 12 7zm0 1c-.8 0-1.5.7-1.5 1.5V11h3V9.5c0-.8-.7-1.5-1.5-1.5z"/></svg>
+            <span>Yönetici Girişi Yap</span>
         </button>
-        
-        <div class="version-text">v4.5 — Türk Mühendisliğinin Dijital Gücü</div>
+        <div class="version-text">v6.1 — Harita Yenileme Hızı Arttırıldı</div>
     </div>
 </div>
 
@@ -248,10 +205,10 @@
 <button id="addMarkerBtn" class="action-btn" title="Yeni Ekle">
     <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
 </button>
-<button id="lockBtn" class="action-btn" title="Düzenleme Kilidi" style="display:none;">
+<button id="lockBtn" class="action-btn" title="Düzenleme Kilidi">
     <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
 </button>
-<button id="exportBtn" class="action-btn" title="Excel'e Aktar" style="display: none;">
+<button id="exportBtn" class="action-btn" title="Excel'e Aktar">
     <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9v-3H8v3H6V8h2v2h1V8h2v8zm5-1.5c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5-1.5.67-1.5 1.5.67 1.5 1.5 1.5zm-3-3v1.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V11c0-1.66-1.34-3-3-3s-3 1.34-3 3v3h1.5v-3c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5v1.5c0 .83-.67 1.5-1.5 1.5s-1.5-.67-1.5-1.5V11h1.5v2.5z"/></svg>
 </button>
 
@@ -275,7 +232,6 @@
 <div id="addModal" class="modal">
     <div class="modal-content">
         <h2 style="color: #3b82f6; margin-bottom:20px; font-weight:800;">İstif Detayları</h2>
-        
         <div style="margin-bottom: 15px; text-align: left;">
             <label style="color: rgba(255,255,255,0.5); font-size: 12px; font-weight: 700; margin-bottom: 5px; display: block;">İSTİF YILI</label>
             <div style="position: relative;">
@@ -286,12 +242,10 @@
                 <div style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); pointer-events: none; color: rgba(255,255,255,0.5);">▼</div>
             </div>
         </div>
-
         <div style="text-align: left;">
             <label style="color: rgba(255,255,255,0.5); font-size: 12px; font-weight: 700; margin-bottom: 5px; display: block;">İSTİF NUMARASI</label>
             <input type="text" id="markerNumber" placeholder="Örn: 250" autocomplete="off" inputmode="numeric" pattern="[0-9]*" style="margin-bottom: 0;">
         </div>
-
         <div class="modal-buttons" style="margin-top: 20px;">
             <button class="btn-cancel" id="btnAddCancel">İptal</button>
             <button class="btn-save" id="btnAddSave">Kaydet</button>
@@ -319,7 +273,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, push, onChildAdded, onChildChanged, onChildRemoved, remove, update, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    window.onerror = function(msg) { if (msg.includes("maxZoom")) return false; };
+    window.onerror = function(msg) { if (msg.includes("maxZoom") || msg.includes("_latLngToNewLayerPoint")) return false; };
 
     const firebaseConfig = {
         apiKey: "AIzaSyBALVTNtwpBZEB4t8fhb7_I3nZJZzrnJU4",
@@ -343,7 +297,7 @@
     let targetRole = null;
     let isEditMode = false;
     let lastActiveMarker = null;
-    const markers = {};
+    const markers = {}; 
     let addingMarkerMode = false;
     let tempLatLng = null;
     let markerToDelete = null;
@@ -354,15 +308,41 @@
     let navPolyline = null;
     let currentTargetLatLng = null;
 
-    document.getElementById('btnGuest').addEventListener('click', () => { userRole = 'guest'; initAppLayout(); });
-    document.getElementById('btnUser').addEventListener('click', () => { openAuthModal('user'); });
-    document.getElementById('btnAdmin').addEventListener('click', () => { openAuthModal('admin'); });
-    document.getElementById('btnAuthCancel').addEventListener('click', () => { document.getElementById('authModal').style.display = 'none'; });
-    document.getElementById('btnAuthLogin').addEventListener('click', attemptLogin);
+    // --- LEAFLET AYARLARI (PERFORMANS ODAKLI) ---
+    const southWest = L.latLng(41.947443, 34.756365);
+    const northEast = L.latLng(41.952599, 34.764444);
+    const bounds = L.latLngBounds(southWest, northEast);
+    
+    // Canvas Mode AÇIK
+    const map = L.map('map', { 
+        center: bounds.getCenter(), 
+        zoom: 16, 
+        minZoom: 10, 
+        maxZoom: 22,
+        zoomControl: false,
+        preferCanvas: true // PERFORMANS
+    });
 
+    L.control.zoom({ position: 'bottomright' }).addTo(map);
+    L.imageOverlay('harita.jpg', bounds).addTo(map);
+    map.fitBounds(bounds);
+
+    // Chunked Loading AÇIK
+    const markersCluster = L.markerClusterGroup({ 
+        disableClusteringAtZoom: 19, 
+        spiderfyOnMaxZoom: true, 
+        showCoverageOnHover: false,
+        chunkedLoading: true, 
+        chunkInterval: 200,
+        chunkDelay: 50
+    });
+    map.addLayer(markersCluster);
+
+    // --- FONKSİYONLAR ---
+    // CSS Çakışmasını önlemek için style.display='flex' kullanıyoruz.
     function openAuthModal(role) {
         targetRole = role;
-        document.getElementById('authModal').style.display = 'flex';
+        document.getElementById('authModal').style.display = 'flex'; // ZORLA AÇ
         document.getElementById('authTitle').innerText = role === 'admin' ? 'Yönetici Girişi' : 'Kullanıcı Girişi';
         document.getElementById('authError').style.display = 'none';
         document.getElementById('authUsername').value = '';
@@ -396,31 +376,8 @@
         }
     }
 
-    const southWest = L.latLng(41.947443, 34.756365);
-    const northEast = L.latLng(41.952599, 34.764444);
-    const bounds = L.latLngBounds(southWest, northEast);
-    
-    const map = L.map('map', { 
-        center: bounds.getCenter(), 
-        zoom: 16, 
-        minZoom: 10, 
-        maxZoom: 22,
-        zoomControl: false 
-    });
-    map.options.maxZoom = 22;
-
-    L.control.zoom({ position: 'bottomright' }).addTo(map);
-    const overlay = L.imageOverlay('harita.jpg', bounds).addTo(map);
-    map.fitBounds(bounds);
-
-    const markersCluster = L.markerClusterGroup({ disableClusteringAtZoom: 19, spiderfyOnMaxZoom: true, showCoverageOnHover: false });
-    map.addLayer(markersCluster);
-
-    // --- DÜZELTİLEN FONKSİYON: DURUM PARAMETRESİ EKLENDİ ---
     function createNumberIcon(num, durum) {
-        // Durum 'yarim' ise ekstra class ekle
         const extraClass = (durum === 'yarim') ? 'yarim' : '';
-        
         return L.divIcon({
             className: "custom-div-icon",
             html: `<div class="pin-wrapper">
@@ -433,13 +390,12 @@
 
     window.triggerDeleteGlobal = function(key) {
         markerToDelete = { key: key, marker: markers[key] };
-        document.getElementById("deleteModal").classList.add("show");
+        document.getElementById("deleteModal").style.display = 'flex'; // ZORLA AÇ
     };
 
     function createMarker(key, d) {
         if(!d.lat || !d.lng) return null;
         
-        // --- DÜZELTME: createNumberIcon ÇAĞRISINA 'd.durum' EKLENDİ ---
         const marker = L.marker([d.lat, d.lng], { 
             icon: createNumberIcon(d.title || "?", d.durum), 
             draggable: isEditMode 
@@ -449,8 +405,7 @@
 
         marker.on('dragend', function(e) {
             const newPos = marker.getLatLng();
-            update(ref(db, "points/" + key), { lat: newPos.lat, lng: newPos.lng })
-                .catch(() => marker.setLatLng([d.lat, d.lng]));
+            update(ref(db, "points/" + key), { lat: newPos.lat, lng: newPos.lng }).catch(err => { marker.setLatLng([d.lat, d.lng]); });
         });
 
         marker.on('click', (e) => {
@@ -474,67 +429,27 @@
                     el.querySelector('.pin-wrapper')?.classList.add('bounce-anim'); 
                 }
                 lastActiveMarker = marker; 
-                
-                map.setView(marker.getLatLng(), map.getZoom());
-
+                map.setView(marker.getLatLng(), Math.max(map.getZoom(), 18));
                 document.getElementById('navTargetTitle').innerText = "İstif No: " + d.title;
-                
                 const navSubtitle = document.querySelector('.nav-subtitle');
                 const yilBilgisi = d.yil || 2025; 
-
-                if (yilBilgisi == 2026) {
-                    navSubtitle.innerHTML = '<span style="color: #4ade80; font-weight:bold;">● 2026 (Aktif)</span>';
-                } else {
-                    navSubtitle.innerHTML = `<span style="color: #facc15; font-weight:bold;">● ${yilBilgisi} (Devir)</span>`;
-                }
-
+                navSubtitle.innerHTML = (yilBilgisi == 2026) ? '<span style="color: #4ade80; font-weight:bold;">● 2026 (Aktif)</span>' : `<span style="color: #facc15; font-weight:bold;">● ${yilBilgisi} (Devir)</span>`;
                 document.getElementById('navDistance').innerText = "-- m";
                 document.getElementById('bottomNavPanel').classList.add('active');
-                
                 currentTargetLatLng = marker.getLatLng();
-
-                if(navigationActive) {
-                    document.getElementById('btnStartNav').style.display = 'none';
-                    document.getElementById('btnStopNav').style.display = 'block';
-                } else {
-                    document.getElementById('btnStartNav').style.display = 'flex';
-                    document.getElementById('btnStopNav').style.display = 'none';
-                }
-
+                updateNavButtons();
                 const deleteBtn = document.getElementById('btnPanelDelete');
-                if (isEditMode) {
-                    deleteBtn.style.display = 'block';
-                    deleteBtn.onclick = function() { window.triggerDeleteGlobal(key); };
-                } else {
-                    deleteBtn.style.display = 'none';
-                }
+                if (isEditMode) { deleteBtn.style.display = 'block'; deleteBtn.onclick = function() { window.triggerDeleteGlobal(key); }; } 
+                else { deleteBtn.style.display = 'none'; }
             }
         });
         return marker;
     }
 
-    document.getElementById('btnStartNav').addEventListener('click', () => {
-        if(!currentTargetLatLng) return;
-
-        if (navigator.geolocation) {
-            navigationActive = true;
-            document.getElementById('btnStartNav').style.display = 'none';
-            document.getElementById('btnStopNav').style.display = 'block';
-
-            if(navPolyline) { map.removeLayer(navPolyline); }
-            
-            watchId = navigator.geolocation.watchPosition(updateUserLocation, locationError, {
-                enableHighAccuracy: true,
-                maximumAge: 1000,
-                timeout: 10000
-            });
-
-        } else {
-            alert("Tarayıcınız konum servisini desteklemiyor.");
-        }
-    });
-
-    document.getElementById('btnStopNav').addEventListener('click', stopNavigation);
+    function updateNavButtons() {
+        if(navigationActive) { document.getElementById('btnStartNav').style.display = 'none'; document.getElementById('btnStopNav').style.display = 'flex'; } 
+        else { document.getElementById('btnStartNav').style.display = 'flex'; document.getElementById('btnStopNav').style.display = 'none'; }
+    }
 
     function stopNavigation() {
         navigationActive = false;
@@ -542,11 +457,8 @@
         watchId = null;
         if(navPolyline) { map.removeLayer(navPolyline); navPolyline = null; }
         if(userMarker) { map.removeLayer(userMarker); userMarker = null; }
-
-        document.getElementById('btnStartNav').style.display = 'flex';
-        document.getElementById('btnStopNav').style.display = 'none';
+        updateNavButtons();
         document.getElementById('navDistance').innerText = "-- m";
-        
         if (lastActiveMarker) {
              const el = lastActiveMarker.getElement();
              if(el) { 
@@ -560,41 +472,42 @@
     }
 
     function updateUserLocation(position) {
-        const userLat = position.coords.latitude;
-        const userLng = position.coords.longitude;
-        const userLatLng = L.latLng(userLat, userLng);
-
+        const userLat = position.coords.latitude; const userLng = position.coords.longitude; const userLatLng = L.latLng(userLat, userLng);
         if (!userMarker) {
             const userIcon = L.divIcon({ className: 'user-location-marker', iconSize: [20, 20], iconAnchor: [10, 10] });
             userMarker = L.marker(userLatLng, {icon: userIcon}).addTo(map);
-        } else {
-            userMarker.setLatLng(userLatLng);
-        }
-
+        } else { userMarker.setLatLng(userLatLng); }
         if (navigationActive && currentTargetLatLng) {
             const distance = map.distance(userLatLng, currentTargetLatLng);
             document.getElementById('navDistance').innerText = Math.round(distance) + " m";
-
-            if (navPolyline) {
-                navPolyline.setLatLngs([userLatLng, currentTargetLatLng]);
-            } else {
-                navPolyline = L.polyline([userLatLng, currentTargetLatLng], {
-                    color: '#3b82f6',
-                    weight: 4,
-                    opacity: 0.9,
-                    dashArray: '10, 10'
-                }).addTo(map);
-            }
+            if (navPolyline) { navPolyline.setLatLngs([userLatLng, currentTargetLatLng]); } 
+            else { navPolyline = L.polyline([userLatLng, currentTargetLatLng], { color: '#3b82f6', weight: 4, opacity: 0.9, dashArray: '10, 10', renderer: L.canvas() }).addTo(map); }
         }
     }
+    function locationError(err) { console.warn('GPS Hatası:', err); }
 
-    function locationError(err) {
-        console.warn('GPS Hatası:', err.code, err.message);
-    }
+    // --- EVENT LISTENERLAR (SİZİN YÖNTEMİNİZ - GARANTİLİ) ---
+    document.getElementById('btnGuest').addEventListener('click', () => { userRole = 'guest'; initAppLayout(); });
+    document.getElementById('btnUser').addEventListener('click', () => { openAuthModal('user'); });
+    document.getElementById('btnAdmin').addEventListener('click', () => { openAuthModal('admin'); });
+    document.getElementById('btnAuthCancel').addEventListener('click', () => { document.getElementById('authModal').style.display = 'none'; });
+    document.getElementById('btnAuthLogin').addEventListener('click', attemptLogin);
+
+    // Navigasyon Eventleri
+    document.getElementById('btnStartNav').addEventListener('click', () => {
+        if(!currentTargetLatLng) return;
+        if (navigator.geolocation) {
+            navigationActive = true; updateNavButtons();
+            if(navPolyline) { map.removeLayer(navPolyline); }
+            watchId = navigator.geolocation.watchPosition(updateUserLocation, locationError, { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 });
+        } else { alert("Konum servisi kapalı."); }
+    });
+
+    document.getElementById('btnStopNav').addEventListener('click', stopNavigation);
 
     map.on('click', (e) => {
-        if(!addingMarkerMode && !navigationActive) {
-            document.getElementById('bottomNavPanel').classList.remove('active');
+        if(!addingMarkerMode && !navigationActive) { 
+            document.getElementById('bottomNavPanel').classList.remove('active'); 
             if (lastActiveMarker) {
                  const el = lastActiveMarker.getElement();
                  if(el) { 
@@ -607,7 +520,7 @@
         }
         if (addingMarkerMode) {
             tempLatLng = e.latlng;
-            document.getElementById("addModal").classList.add("show");
+            document.getElementById("addModal").style.display = 'flex'; // ZORLA AÇ
             document.getElementById("markerNumber").value = "";
             document.getElementById("markerNumber").focus();
         }
@@ -623,10 +536,11 @@
         const marker = markers[snap.key];
         if (marker) {
             const d = snap.val();
-            marker.setLatLng([d.lat, d.lng]);
-            // --- DÜZELTME: BURAYA DA d.durum EKLENDİ ---
-            marker.setIcon(createNumberIcon(d.title, d.durum));
-            marker.myTitle = d.title;
+            const currentLL = marker.getLatLng();
+            if(Math.abs(currentLL.lat - d.lat) > 0.000001 || Math.abs(currentLL.lng - d.lng) > 0.000001) { marker.setLatLng([d.lat, d.lng]); }
+            if(marker.myTitle != d.title || marker.options.icon.options.className.includes('yarim') !== (d.durum === 'yarim')) {
+                marker.setIcon(createNumberIcon(d.title, d.durum)); marker.myTitle = d.title;
+            }
         }
     });
 
@@ -642,8 +556,7 @@
             addMarkerBtn.classList.add("active"); 
             addMarkerBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>';
             map.getContainer().classList.add("crosshair-cursor-enabled");
-            document.getElementById('bottomNavPanel').classList.remove('active');
-            
+            document.getElementById('bottomNavPanel').classList.remove('active'); 
             if (lastActiveMarker) {
                  const el = lastActiveMarker.getElement();
                  if(el) { 
@@ -653,7 +566,6 @@
                  }
                  lastActiveMarker = null;
             }
-
         } else {
             addMarkerBtn.classList.remove("active"); 
             addMarkerBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>';
@@ -664,50 +576,34 @@
     document.getElementById("btnAddSave").addEventListener("click", () => {
         const val = document.getElementById("markerNumber").value.trim();
         const selectedYear = document.getElementById("markerYear").value; 
-
         if (val && tempLatLng) {
-            push(pointsRef, { 
-                lat: tempLatLng.lat, 
-                lng: tempLatLng.lng, 
-                title: val,
-                yil: parseInt(selectedYear) 
-            });
-
-            document.getElementById("addModal").classList.remove("show");
-            tempLatLng = null; 
-            addingMarkerMode = false;
+            push(pointsRef, { lat: tempLatLng.lat, lng: tempLatLng.lng, title: val, yil: parseInt(selectedYear) });
+            document.getElementById("addModal").style.display = 'none';
+            tempLatLng = null; addingMarkerMode = false;
             addMarkerBtn.classList.remove("active"); 
             addMarkerBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>';
             map.getContainer().classList.remove("crosshair-cursor-enabled");
         }
     });
-    document.getElementById("btnAddCancel").addEventListener("click", () => { document.getElementById("addModal").classList.remove("show"); tempLatLng = null; });
+
+    document.getElementById("btnAddCancel").addEventListener("click", () => { document.getElementById("addModal").style.display = 'none'; tempLatLng = null; });
     document.getElementById("btnDeleteConfirm").addEventListener("click", () => { 
         if (markerToDelete) { 
             remove(ref(db, `points/${markerToDelete.key}`)); 
-            document.getElementById("deleteModal").classList.remove("show"); 
-            markerToDelete = null; 
+            document.getElementById("deleteModal").style.display = 'none'; markerToDelete = null; 
             document.getElementById('bottomNavPanel').classList.remove('active'); 
         } 
     });
-    document.getElementById("btnDeleteCancel").addEventListener("click", () => { document.getElementById("deleteModal").classList.remove("show"); markerToDelete = null; });
+    document.getElementById("btnDeleteCancel").addEventListener("click", () => { document.getElementById("deleteModal").style.display = 'none'; markerToDelete = null; });
 
     document.getElementById('lockBtn').addEventListener('click', () => {
         isEditMode = !isEditMode;
         const btn = document.getElementById('lockBtn');
         btn.classList.toggle('unlocked', isEditMode);
         document.getElementById('map').classList.toggle('map-edit-active', isEditMode);
-        btn.innerHTML = isEditMode ? '<svg viewBox="0 0 24 24"><path d="M12 17c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6-9h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6h1.9c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm0 12H6V10h12v10z"/></svg>' : '<svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>';
-        
-        for (const key in markers) {
-            const marker = markers[key];
-            if (isEditMode) marker.dragging.enable(); else marker.dragging.disable();
-        }
-        
+        markersCluster.eachLayer(function(marker) { if (isEditMode) marker.dragging.enable(); else marker.dragging.disable(); });
         const deleteBtn = document.getElementById('btnPanelDelete');
-        if (deleteBtn) {
-             deleteBtn.style.display = isEditMode ? 'block' : 'none';
-        }
+        if (deleteBtn) { deleteBtn.style.display = isEditMode ? 'block' : 'none'; }
     });
 
     document.getElementById("searchInput").addEventListener("input", (e) => {
@@ -728,7 +624,7 @@
         const blob = new Blob([csv], { type: 'text/csv' });
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
-        link.download = `Data.csv`;
+        link.download = `OrmanDepo_Data_${new Date().toLocaleDateString()}.csv`;
         link.click();
     });
 </script>
