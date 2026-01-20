@@ -275,9 +275,25 @@
 
 <div id="addModal" class="modal">
     <div class="modal-content">
-        <h2 style="color: #3b82f6; margin-bottom:20px; font-weight:800;">İstif Numarası</h2>
-        <input type="text" id="markerNumber" placeholder="Numara girin..." autocomplete="off" inputmode="numeric" pattern="[0-9]*">
-        <div class="modal-buttons">
+        <h2 style="color: #3b82f6; margin-bottom:20px; font-weight:800;">İstif Detayları</h2>
+        
+        <div style="margin-bottom: 15px; text-align: left;">
+            <label style="color: rgba(255,255,255,0.5); font-size: 12px; font-weight: 700; margin-bottom: 5px; display: block;">İSTİF YILI</label>
+            <div style="position: relative;">
+                <select id="markerYear" style="width: 100%; padding: 14px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 10px; font-size: 16px; outline: none; font-family: 'Satoshi', sans-serif; appearance: none; cursor: pointer;">
+                    <option value="2026">2026 (Aktif)</option>
+                    <option value="2025">2025 (Devir)</option>
+                </select>
+                <div style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); pointer-events: none; color: rgba(255,255,255,0.5);">▼</div>
+            </div>
+        </div>
+
+        <div style="text-align: left;">
+            <label style="color: rgba(255,255,255,0.5); font-size: 12px; font-weight: 700; margin-bottom: 5px; display: block;">İSTİF NUMARASI</label>
+            <input type="text" id="markerNumber" placeholder="Örn: 250" autocomplete="off" inputmode="numeric" pattern="[0-9]*" style="margin-bottom: 0;">
+        </div>
+
+        <div class="modal-buttons" style="margin-top: 20px;">
             <button class="btn-cancel" id="btnAddCancel">İptal</button>
             <button class="btn-save" id="btnAddSave">Kaydet</button>
         </div>
@@ -454,6 +470,17 @@
                 map.setView(marker.getLatLng(), map.getZoom());
 
                 document.getElementById('navTargetTitle').innerText = "İstif No: " + d.title;
+                
+                // YIL BİLGİSİNİ GÖSTERME MANTIĞI
+                const navSubtitle = document.querySelector('.nav-subtitle');
+                const yilBilgisi = d.yil || 2025; // Veride yıl yoksa eskidir, 2025 kabul et.
+
+                if (yilBilgisi == 2026) {
+                    navSubtitle.innerHTML = '<span style="color: #4ade80; font-weight:bold;">● 2026 (Aktif)</span>';
+                } else {
+                    navSubtitle.innerHTML = `<span style="color: #facc15; font-weight:bold;">● ${yilBilgisi} (Devir)</span>`;
+                }
+
                 document.getElementById('navDistance').innerText = "-- m";
                 document.getElementById('bottomNavPanel').classList.add('active');
                 
@@ -629,10 +656,20 @@
 
     document.getElementById("btnAddSave").addEventListener("click", () => {
         const val = document.getElementById("markerNumber").value.trim();
+        const selectedYear = document.getElementById("markerYear").value; // Yıl bilgisini al
+
         if (val && tempLatLng) {
-            push(pointsRef, { lat: tempLatLng.lat, lng: tempLatLng.lng, title: val });
+            // Firebase'e hem title hem de yil bilgisini gönderiyoruz
+            push(pointsRef, { 
+                lat: tempLatLng.lat, 
+                lng: tempLatLng.lng, 
+                title: val,
+                yil: parseInt(selectedYear) 
+            });
+
             document.getElementById("addModal").classList.remove("show");
-            tempLatLng = null; addingMarkerMode = false;
+            tempLatLng = null; 
+            addingMarkerMode = false;
             addMarkerBtn.classList.remove("active"); 
             addMarkerBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>';
             map.getContainer().classList.remove("crosshair-cursor-enabled");
