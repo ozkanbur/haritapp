@@ -52,7 +52,6 @@
             user-select: none;
         }
         
-        /* Tıklama sorununu engelleyen kritik kod */
         .login-btn svg, .login-btn span { pointer-events: none; }
         .login-btn:active { transform: scale(0.96); }
 
@@ -64,7 +63,7 @@
 
         /* MODALS & INPUTS */
         #authModal, .modal { 
-            display: none; /* JS ile style.display='flex' yapılınca açılacak */
+            display: none; 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); 
             z-index: 6000; 
@@ -80,8 +79,32 @@
         .btn-delete { background: #ef4444; color: white; flex: 1; padding: 12px; border:none; border-radius:10px; font-weight:bold; cursor:pointer;}
         .error-msg { color: #ff4747; font-size: 14px; margin-bottom: 15px; display: none; text-align: center; font-weight: 600; }
 
-        /* UI CONTROLS */
-        .search-box { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); width: 200px; padding: 10px 20px; z-index: 500; border-radius: 30px; border: none; background: rgba(30, 41, 59, 0.9); color: white; backdrop-filter: blur(5px); display: none; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3); font-family: 'Satoshi', sans-serif; font-size: 14px; }
+        /* --- YENİ SEARCH & FOCUS WRAPPER --- */
+        .search-wrapper {
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            z-index: 500; display: none; /* JS ile açılacak */
+            align-items: center; gap: 8px;
+            width: auto;
+        }
+
+        .search-box { 
+            width: 200px; padding: 10px 20px; border-radius: 30px; border: none; 
+            background: rgba(30, 41, 59, 0.9); color: white; backdrop-filter: blur(5px); 
+            text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3); 
+            font-family: 'Satoshi', sans-serif; font-size: 14px; outline: none;
+        }
+
+        .focus-btn {
+            width: 40px; height: 40px; border-radius: 50%; border: none;
+            background: rgba(30, 41, 59, 0.9); color: white; cursor: pointer;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3); backdrop-filter: blur(5px);
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s;
+        }
+        .focus-btn:active { transform: scale(0.9); }
+        .focus-btn.active-focus { background: #f59e0b; color: black; box-shadow: 0 0 15px rgba(245, 158, 11, 0.5); }
+        /* ---------------------------------- */
+
         .action-btn { position: absolute; right: 20px; width: 48px; height: 48px; border-radius: 14px; border: none; cursor: pointer; z-index: 500; box-shadow: 0 8px 20px rgba(0,0,0,0.4); display: none; align-items: center; justify-content: center; color: white; transition: all 0.2s; }
         .action-btn:active { transform: scale(0.95); }
         .action-btn svg { width: 24px; height: 24px; fill: currentColor; pointer-events: none; }
@@ -163,7 +186,7 @@
 </head>
 <body>
 
-<div id="versionTag">v6.1 Final Fix</div>
+<div id="versionTag">v6.2 Focus Mode Update</div>
 
 <div id="loginScreen">
     <div class="login-container">
@@ -183,7 +206,7 @@
             <svg style="width:20px; height:20px; fill:currentColor" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 6c1.4 0 2.8 1.1 2.8 2.5V11c.6 0 1.2.6 1.2 1.2v3.5c0 .7-.6 1.3-1.2 1.3H9.2c-.6 0-1.2-.6-1.2-1.2v-3.5c0-.7.6-1.3 1.2-1.2V9.5C9.2 8.1 10.6 7 12 7zm0 1c-.8 0-1.5.7-1.5 1.5V11h3V9.5c0-.8-.7-1.5-1.5-1.5z"/></svg>
             <span>Yönetici Girişi Yap</span>
         </button>
-        <div class="version-text">v6.1 — Harita Yenileme Hızı Arttırıldı</div>
+        <div class="version-text">v6.2 — Tekli Odak Modu Eklendi</div>
     </div>
 </div>
 
@@ -200,7 +223,14 @@
     </div>
 </div>
 
-<input type="text" id="searchInput" class="search-box" placeholder="Numara Ara..." inputmode="numeric" pattern="[0-9]*">
+<div id="searchWrapper" class="search-wrapper">
+    <input type="text" id="searchInput" class="search-box" placeholder="Numara Ara..." inputmode="numeric" pattern="[0-9]*">
+    <button id="focusBtn" class="focus-btn" title="Sadece Bunu Göster">
+        <svg style="width:20px; height:20px; fill:currentColor" viewBox="0 0 24 24">
+            <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+        </svg>
+    </button>
+</div>
 
 <button id="addMarkerBtn" class="action-btn" title="Yeni Ekle">
     <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
@@ -308,6 +338,9 @@
     let navPolyline = null;
     let currentTargetLatLng = null;
 
+    // --- YENİ DEĞİŞKEN: ODAK MODU ---
+    let isFocusMode = false;
+
     // --- LEAFLET AYARLARI (PERFORMANS ODAKLI) ---
     const southWest = L.latLng(41.947443, 34.756365);
     const northEast = L.latLng(41.952599, 34.764444);
@@ -339,10 +372,9 @@
     map.addLayer(markersCluster);
 
     // --- FONKSİYONLAR ---
-    // CSS Çakışmasını önlemek için style.display='flex' kullanıyoruz.
     function openAuthModal(role) {
         targetRole = role;
-        document.getElementById('authModal').style.display = 'flex'; // ZORLA AÇ
+        document.getElementById('authModal').style.display = 'flex';
         document.getElementById('authTitle').innerText = role === 'admin' ? 'Yönetici Girişi' : 'Kullanıcı Girişi';
         document.getElementById('authError').style.display = 'none';
         document.getElementById('authUsername').value = '';
@@ -362,7 +394,8 @@
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('authModal').style.display = 'none';
         document.getElementById('map').style.display = 'block';
-        document.getElementById('searchInput').style.display = 'block';
+        // Wrapper'ı görünür yapıyoruz (Eski input yerine wrapper açılıyor)
+        document.getElementById('searchWrapper').style.display = 'flex';
         setTimeout(() => { map.invalidateSize(); map.fitBounds(bounds); }, 300);
 
         const addBtn = document.getElementById('addMarkerBtn');
@@ -390,7 +423,7 @@
 
     window.triggerDeleteGlobal = function(key) {
         markerToDelete = { key: key, marker: markers[key] };
-        document.getElementById("deleteModal").style.display = 'flex'; // ZORLA AÇ
+        document.getElementById("deleteModal").style.display = 'flex';
     };
 
     function createMarker(key, d) {
@@ -412,8 +445,9 @@
             if(marker.dragging && marker.dragging.enabled() && marker._isDragging) return;
             L.DomEvent.stopPropagation(e);
             
+            // Eğer yeni bir marker'a tıklanırsa, önce mevcut aktifi resetle
             if (!addingMarkerMode) {
-                if (lastActiveMarker) {
+                if (lastActiveMarker && lastActiveMarker !== marker) {
                     const el = lastActiveMarker.getElement();
                     if(el) { 
                         el.querySelector('.pin-marker')?.classList.remove('active'); 
@@ -459,6 +493,10 @@
         if(userMarker) { map.removeLayer(userMarker); userMarker = null; }
         updateNavButtons();
         document.getElementById('navDistance').innerText = "-- m";
+        
+        // Navigasyon bittiğinde Focus modu da kapatalım mı? Evet, kullanıcı rahatlasın.
+        if (isFocusMode) { toggleFocusMode(); }
+
         if (lastActiveMarker) {
              const el = lastActiveMarker.getElement();
              if(el) { 
@@ -486,12 +524,53 @@
     }
     function locationError(err) { console.warn('GPS Hatası:', err); }
 
-    // --- EVENT LISTENERLAR (SİZİN YÖNTEMİNİZ - GARANTİLİ) ---
+    // --- YENİ FONKSİYON: ODAK MODU TOGGLE ---
+    function toggleFocusMode() {
+        const btn = document.getElementById('focusBtn');
+        isFocusMode = !isFocusMode;
+
+        if (isFocusMode) {
+            // Aktif Hale Getir
+            if (!lastActiveMarker) {
+                alert("Lütfen önce haritadan veya aramadan bir istif seçiniz.");
+                isFocusMode = false;
+                return;
+            }
+            
+            // 1. Tüm markerları temizle (Cluster'dan)
+            markersCluster.clearLayers();
+            
+            // 2. Sadece hedefini ekle
+            markersCluster.addLayer(lastActiveMarker);
+            
+            // 3. Buton ikonunu değiştir (Gözü kapa / Slash) ve stil ver
+            btn.classList.add('active-focus');
+            btn.innerHTML = `<svg style="width:20px; height:20px; fill:currentColor" viewBox="0 0 24 24"><path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z"/></svg>`;
+            
+        } else {
+            // Pasif Hale Getir (Hepsini Geri Yükle)
+            markersCluster.clearLayers();
+            const allMarkers = [];
+            for (let key in markers) {
+                allMarkers.push(markers[key]);
+            }
+            markersCluster.addLayers(allMarkers);
+            
+            // 3. Buton ikonunu eski haline getir
+            btn.classList.remove('active-focus');
+            btn.innerHTML = `<svg style="width:20px; height:20px; fill:currentColor" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>`;
+        }
+    }
+
+    // --- EVENT LISTENERLAR ---
     document.getElementById('btnGuest').addEventListener('click', () => { userRole = 'guest'; initAppLayout(); });
     document.getElementById('btnUser').addEventListener('click', () => { openAuthModal('user'); });
     document.getElementById('btnAdmin').addEventListener('click', () => { openAuthModal('admin'); });
     document.getElementById('btnAuthCancel').addEventListener('click', () => { document.getElementById('authModal').style.display = 'none'; });
     document.getElementById('btnAuthLogin').addEventListener('click', attemptLogin);
+
+    // Yeni Buton Eventi
+    document.getElementById('focusBtn').addEventListener('click', toggleFocusMode);
 
     // Navigasyon Eventleri
     document.getElementById('btnStartNav').addEventListener('click', () => {
@@ -507,6 +586,10 @@
 
     map.on('click', (e) => {
         if(!addingMarkerMode && !navigationActive) { 
+            // Boşluğa tıklanınca panel kapanıyor.
+            // Eğer focus mod açıksa onu da kapatalım mı? Mantıken evet, çünkü seçim iptal oluyor.
+            if(isFocusMode) toggleFocusMode();
+
             document.getElementById('bottomNavPanel').classList.remove('active'); 
             if (lastActiveMarker) {
                  const el = lastActiveMarker.getElement();
@@ -520,7 +603,7 @@
         }
         if (addingMarkerMode) {
             tempLatLng = e.latlng;
-            document.getElementById("addModal").style.display = 'flex'; // ZORLA AÇ
+            document.getElementById("addModal").style.display = 'flex';
             document.getElementById("markerNumber").value = "";
             document.getElementById("markerNumber").focus();
         }
@@ -529,7 +612,11 @@
     onChildAdded(pointsRef, (snap) => {
         if (markers[snap.key]) return; 
         const marker = createMarker(snap.key, snap.val());
-        if(marker) { markers[snap.key] = marker; markersCluster.addLayer(marker); }
+        if(marker) { 
+            markers[snap.key] = marker; 
+            // Eğer Focus Modu kapalıysa ekle, açıksa beklemede kalsın (görünmesin)
+            if (!isFocusMode) markersCluster.addLayer(marker); 
+        }
     });
 
     onChildChanged(pointsRef, (snap) => {
@@ -546,7 +633,11 @@
 
     onChildRemoved(pointsRef, (snap) => {
         const marker = markers[snap.key];
-        if (marker) { markersCluster.removeLayer(marker); delete markers[snap.key]; }
+        if (marker) { 
+            // Hem listeden hem clusterdan sil
+            markersCluster.removeLayer(marker); 
+            delete markers[snap.key]; 
+        }
     });
 
     const addMarkerBtn = document.getElementById("addMarkerBtn");
@@ -556,7 +647,11 @@
             addMarkerBtn.classList.add("active"); 
             addMarkerBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>';
             map.getContainer().classList.add("crosshair-cursor-enabled");
+            
+            // Ekleme moduna geçerken focus modu kapat ve paneli gizle
+            if (isFocusMode) toggleFocusMode();
             document.getElementById('bottomNavPanel').classList.remove('active'); 
+            
             if (lastActiveMarker) {
                  const el = lastActiveMarker.getElement();
                  if(el) { 
@@ -609,6 +704,11 @@
     document.getElementById("searchInput").addEventListener("input", (e) => {
         const val = e.target.value.trim();
         if(val === "") return;
+        
+        // Arama yaparken Focus Mod açıksa, kullanıcı muhtemelen yeni bir şey arıyor.
+        // Focus modu kapatalım ki aradığı diğer pinler de görünür olsun.
+        if (isFocusMode) toggleFocusMode();
+
         for (let key in markers) {
             if (markers[key].myTitle == val) {
                 markersCluster.zoomToShowLayer(markers[key], function() { markers[key].fire('click'); });
