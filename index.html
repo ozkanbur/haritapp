@@ -172,6 +172,9 @@
         .btn-start-nav { background: #2563eb; color: white; border: none; padding: 16px; border-radius: 14px; font-size: 16px; font-weight: 800; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; }
         .btn-stop-nav { background: #f59e0b; color: white; border: none; padding: 16px; border-radius: 14px; font-size: 16px; font-weight: 800; cursor: pointer; width: 100%; display: none; }
         .btn-delete-nav { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 16px; border-radius: 14px; font-size: 16px; font-weight: 800; cursor: pointer; width: 100%; display: none; }
+        
+        /* Yeni Yönetici Yıl Düzenleme Butonu */
+        .btn-edit-year { background: rgba(59, 130, 246, 0.15); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); padding: 16px; border-radius: 14px; font-size: 16px; font-weight: 800; cursor: pointer; width: 100%; display: none; }
 
         .user-location-marker {
             width: 20px; height: 20px; background: #3b82f6; 
@@ -186,7 +189,7 @@
 </head>
 <body>
 
-<div id="versionTag">v6.2 Focus Mode Update</div>
+<div id="versionTag">v6.3 Yönetici Yıl Düzenleme Eklentisi</div>
 
 <div id="loginScreen">
     <div class="login-container">
@@ -206,7 +209,7 @@
             <svg style="width:20px; height:20px; fill:currentColor" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 6c1.4 0 2.8 1.1 2.8 2.5V11c.6 0 1.2.6 1.2 1.2v3.5c0 .7-.6 1.3-1.2 1.3H9.2c-.6 0-1.2-.6-1.2-1.2v-3.5c0-.7.6-1.3 1.2-1.2V9.5C9.2 8.1 10.6 7 12 7zm0 1c-.8 0-1.5.7-1.5 1.5V11h3V9.5c0-.8-.7-1.5-1.5-1.5z"/></svg>
             <span>Yönetici Girişi Yap</span>
         </button>
-        <div class="version-text">v6.2 — Tekli Odak Modu Eklendi</div>
+        <div class="version-text">v6.3 — Yönetici Yıl Düzenleme Eklendi</div>
     </div>
 </div>
 
@@ -256,6 +259,7 @@
         İstife Git (Başlat)
     </button>
     <button id="btnStopNav" class="btn-stop-nav">Navigasyonu Bitir</button>
+    <button id="btnPanelEditYear" class="btn-edit-year">Yıl Bilgisini Düzenle</button>
     <button id="btnPanelDelete" class="btn-delete-nav">Bu İstifi Sil</button>
 </div>
 
@@ -279,6 +283,26 @@
         <div class="modal-buttons" style="margin-top: 20px;">
             <button class="btn-cancel" id="btnAddCancel">İptal</button>
             <button class="btn-save" id="btnAddSave">Kaydet</button>
+        </div>
+    </div>
+</div>
+
+<div id="editYearModal" class="modal">
+    <div class="modal-content">
+        <h2 style="color: #3b82f6; margin-bottom:20px; font-weight:800;">İstif Yılını Düzenle</h2>
+        <div style="margin-bottom: 15px; text-align: left;">
+            <label style="color: rgba(255,255,255,0.5); font-size: 12px; font-weight: 700; margin-bottom: 5px; display: block;">YENİ İSTİF YILI</label>
+            <div style="position: relative;">
+                <select id="editMarkerYear" style="width: 100%; padding: 14px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 10px; font-size: 16px; outline: none; font-family: 'Satoshi', sans-serif; appearance: none; cursor: pointer;">
+                    <option value="2026">2026 (Aktif)</option>
+                    <option value="2025">2025 (Devir)</option>
+                </select>
+                <div style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); pointer-events: none; color: rgba(255,255,255,0.5);">▼</div>
+            </div>
+        </div>
+        <div class="modal-buttons" style="margin-top: 20px;">
+            <button class="btn-cancel" id="btnEditYearCancel">İptal</button>
+            <button class="btn-save" id="btnEditYearSave">Güncelle</button>
         </div>
     </div>
 </div>
@@ -338,7 +362,9 @@
     let navPolyline = null;
     let currentTargetLatLng = null;
 
-    // --- YENİ DEĞİŞKEN: ODAK MODU ---
+    // YENİ DEĞİŞKEN: Yıl Düzenleme için state
+    let markerToEditYearKey = null;
+
     let isFocusMode = false;
 
     // --- LEAFLET AYARLARI (PERFORMANS ODAKLI) ---
@@ -394,7 +420,6 @@
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('authModal').style.display = 'none';
         document.getElementById('map').style.display = 'block';
-        // Wrapper'ı görünür yapıyoruz (Eski input yerine wrapper açılıyor)
         document.getElementById('searchWrapper').style.display = 'flex';
         setTimeout(() => { map.invalidateSize(); map.fitBounds(bounds); }, 300);
 
@@ -426,6 +451,12 @@
         document.getElementById("deleteModal").style.display = 'flex';
     };
 
+    window.triggerEditYearGlobal = function(key, currentYear) {
+        markerToEditYearKey = key;
+        document.getElementById("editMarkerYear").value = currentYear;
+        document.getElementById("editYearModal").style.display = 'flex';
+    };
+
     function createMarker(key, d) {
         if(!d.lat || !d.lng) return null;
         
@@ -435,6 +466,7 @@
         });
 
         marker.myTitle = d.title; marker.firebaseKey = key;
+        marker.myYear = d.yil || 2026;
 
         marker.on('dragend', function(e) {
             const newPos = marker.getLatLng();
@@ -445,7 +477,6 @@
             if(marker.dragging && marker.dragging.enabled() && marker._isDragging) return;
             L.DomEvent.stopPropagation(e);
             
-            // Eğer yeni bir marker'a tıklanırsa, önce mevcut aktifi resetle
             if (!addingMarkerMode) {
                 if (lastActiveMarker && lastActiveMarker !== marker) {
                     const el = lastActiveMarker.getElement();
@@ -466,15 +497,24 @@
                 map.setView(marker.getLatLng(), Math.max(map.getZoom(), 18));
                 document.getElementById('navTargetTitle').innerText = "İstif No: " + d.title;
                 const navSubtitle = document.querySelector('.nav-subtitle');
-                const yilBilgisi = d.yil || 2025; 
+                const yilBilgisi = marker.myYear; 
                 navSubtitle.innerHTML = (yilBilgisi == 2026) ? '<span style="color: #4ade80; font-weight:bold;">● 2026 (Aktif)</span>' : `<span style="color: #facc15; font-weight:bold;">● ${yilBilgisi} (Devir)</span>`;
                 document.getElementById('navDistance').innerText = "-- m";
                 document.getElementById('bottomNavPanel').classList.add('active');
                 currentTargetLatLng = marker.getLatLng();
                 updateNavButtons();
+                
                 const deleteBtn = document.getElementById('btnPanelDelete');
                 if (isEditMode) { deleteBtn.style.display = 'block'; deleteBtn.onclick = function() { window.triggerDeleteGlobal(key); }; } 
                 else { deleteBtn.style.display = 'none'; }
+                
+                const editYearBtn = document.getElementById('btnPanelEditYear');
+                if (userRole === 'admin') { 
+                    editYearBtn.style.display = 'block'; 
+                    editYearBtn.onclick = function() { window.triggerEditYearGlobal(key, marker.myYear); }; 
+                } else { 
+                    editYearBtn.style.display = 'none'; 
+                }
             }
         });
         return marker;
@@ -494,7 +534,6 @@
         updateNavButtons();
         document.getElementById('navDistance').innerText = "-- m";
         
-        // Navigasyon bittiğinde Focus modu da kapatalım mı? Evet, kullanıcı rahatlasın.
         if (isFocusMode) { toggleFocusMode(); }
 
         if (lastActiveMarker) {
@@ -524,39 +563,28 @@
     }
     function locationError(err) { console.warn('GPS Hatası:', err); }
 
-    // --- YENİ FONKSİYON: ODAK MODU TOGGLE ---
     function toggleFocusMode() {
         const btn = document.getElementById('focusBtn');
         isFocusMode = !isFocusMode;
 
         if (isFocusMode) {
-            // Aktif Hale Getir
             if (!lastActiveMarker) {
                 alert("Lütfen önce haritadan veya aramadan bir istif seçiniz.");
                 isFocusMode = false;
                 return;
             }
-            
-            // 1. Tüm markerları temizle (Cluster'dan)
             markersCluster.clearLayers();
-            
-            // 2. Sadece hedefini ekle
             markersCluster.addLayer(lastActiveMarker);
-            
-            // 3. Buton ikonunu değiştir (Gözü kapa / Slash) ve stil ver
             btn.classList.add('active-focus');
             btn.innerHTML = `<svg style="width:20px; height:20px; fill:currentColor" viewBox="0 0 24 24"><path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z"/></svg>`;
             
         } else {
-            // Pasif Hale Getir (Hepsini Geri Yükle)
             markersCluster.clearLayers();
             const allMarkers = [];
             for (let key in markers) {
                 allMarkers.push(markers[key]);
             }
             markersCluster.addLayers(allMarkers);
-            
-            // 3. Buton ikonunu eski haline getir
             btn.classList.remove('active-focus');
             btn.innerHTML = `<svg style="width:20px; height:20px; fill:currentColor" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>`;
         }
@@ -569,10 +597,8 @@
     document.getElementById('btnAuthCancel').addEventListener('click', () => { document.getElementById('authModal').style.display = 'none'; });
     document.getElementById('btnAuthLogin').addEventListener('click', attemptLogin);
 
-    // Yeni Buton Eventi
     document.getElementById('focusBtn').addEventListener('click', toggleFocusMode);
 
-    // Navigasyon Eventleri
     document.getElementById('btnStartNav').addEventListener('click', () => {
         if(!currentTargetLatLng) return;
         if (navigator.geolocation) {
@@ -584,12 +610,25 @@
 
     document.getElementById('btnStopNav').addEventListener('click', stopNavigation);
 
+    // Yıl Düzenleme Butonları
+    document.getElementById("btnEditYearCancel").addEventListener("click", () => { 
+        document.getElementById("editYearModal").style.display = 'none'; 
+        markerToEditYearKey = null; 
+    });
+
+    document.getElementById("btnEditYearSave").addEventListener("click", () => {
+        if (markerToEditYearKey) {
+            const newYear = parseInt(document.getElementById("editMarkerYear").value);
+            update(ref(db, "points/" + markerToEditYearKey), { yil: newYear }).then(() => {
+                document.getElementById("editYearModal").style.display = 'none';
+                markerToEditYearKey = null;
+            }).catch(err => alert("Güncelleme hatası: " + err.message));
+        }
+    });
+
     map.on('click', (e) => {
         if(!addingMarkerMode && !navigationActive) { 
-            // Boşluğa tıklanınca panel kapanıyor.
-            // Eğer focus mod açıksa onu da kapatalım mı? Mantıken evet, çünkü seçim iptal oluyor.
             if(isFocusMode) toggleFocusMode();
-
             document.getElementById('bottomNavPanel').classList.remove('active'); 
             if (lastActiveMarker) {
                  const el = lastActiveMarker.getElement();
@@ -614,7 +653,6 @@
         const marker = createMarker(snap.key, snap.val());
         if(marker) { 
             markers[snap.key] = marker; 
-            // Eğer Focus Modu kapalıysa ekle, açıksa beklemede kalsın (görünmesin)
             if (!isFocusMode) markersCluster.addLayer(marker); 
         }
     });
@@ -628,13 +666,19 @@
             if(marker.myTitle != d.title || marker.options.icon.options.className.includes('yarim') !== (d.durum === 'yarim')) {
                 marker.setIcon(createNumberIcon(d.title, d.durum)); marker.myTitle = d.title;
             }
+            
+            // Eğer yıl değiştiyse senkronize et ve panel açıksa canlı yansıt
+            marker.myYear = d.yil || 2026;
+            if (lastActiveMarker === marker) {
+                const navSubtitle = document.querySelector('.nav-subtitle');
+                navSubtitle.innerHTML = (marker.myYear == 2026) ? '<span style="color: #4ade80; font-weight:bold;">● 2026 (Aktif)</span>' : `<span style="color: #facc15; font-weight:bold;">● ${marker.myYear} (Devir)</span>`;
+            }
         }
     });
 
     onChildRemoved(pointsRef, (snap) => {
         const marker = markers[snap.key];
         if (marker) { 
-            // Hem listeden hem clusterdan sil
             markersCluster.removeLayer(marker); 
             delete markers[snap.key]; 
         }
@@ -648,7 +692,6 @@
             addMarkerBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>';
             map.getContainer().classList.add("crosshair-cursor-enabled");
             
-            // Ekleme moduna geçerken focus modu kapat ve paneli gizle
             if (isFocusMode) toggleFocusMode();
             document.getElementById('bottomNavPanel').classList.remove('active'); 
             
@@ -682,6 +725,7 @@
     });
 
     document.getElementById("btnAddCancel").addEventListener("click", () => { document.getElementById("addModal").style.display = 'none'; tempLatLng = null; });
+    
     document.getElementById("btnDeleteConfirm").addEventListener("click", () => { 
         if (markerToDelete) { 
             remove(ref(db, `points/${markerToDelete.key}`)); 
@@ -705,8 +749,6 @@
         const val = e.target.value.trim();
         if(val === "") return;
         
-        // Arama yaparken Focus Mod açıksa, kullanıcı muhtemelen yeni bir şey arıyor.
-        // Focus modu kapatalım ki aradığı diğer pinler de görünür olsun.
         if (isFocusMode) toggleFocusMode();
 
         for (let key in markers) {
@@ -719,8 +761,8 @@
 
     document.getElementById('exportBtn').addEventListener('click', async () => {
         const snap = await get(pointsRef);
-        let csv = "ID;No;Lat;Lng\n";
-        snap.forEach(c => { const v=c.val(); csv+=`${c.key};${v.title};${v.lat};${v.lng}\n`; });
+        let csv = "ID;No;Yil;Lat;Lng\n";
+        snap.forEach(c => { const v=c.val(); csv+=`${c.key};${v.title};${v.yil || 2026};${v.lat};${v.lng}\n`; });
         const blob = new Blob([csv], { type: 'text/csv' });
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
