@@ -787,6 +787,14 @@
         }
     });
 
+    document.getElementById("markerNumber").addEventListener("input", (e) => {
+        if (e.target.value.includes(",")) {
+            const pos = e.target.selectionStart;
+            e.target.value = e.target.value.replace(/,/g, ".");
+            if (pos !== null) e.target.setSelectionRange(pos, pos);
+        }
+    });
+
     document.getElementById("btnAddSave").addEventListener("click", () => {
         const val = document.getElementById("markerNumber").value.trim();
         const selectedYear = document.getElementById("markerYear").value; 
@@ -822,6 +830,11 @@
     });
 
     document.getElementById("searchInput").addEventListener("input", (e) => {
+        if (e.target.value.includes(",")) {
+            const pos = e.target.selectionStart;
+            e.target.value = e.target.value.replace(/,/g, ".");
+            if (pos !== null) e.target.setSelectionRange(pos, pos);
+        }
         const val = e.target.value.trim();
         if(val === "") return;
         
